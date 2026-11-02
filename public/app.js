@@ -109,6 +109,34 @@ function switchTab(tabName) {
     return;
   }
   const tabs = allTabs;
+  const tabLabels = {
+    dashboard: '📊 แดชบอร์ด',
+    customers: '👥 ลูกค้า',
+    orders: '🛒 สั่งน้ำดื่ม',
+    tms: '🚚 ขนส่ง/GPS',
+    production: '🏭 ผลิต & QC',
+    cmms: '🔧 ซ่อมบำรุง',
+    inventory: '🔄 สต็อก/ถัง',
+    costing: '💰 ค่าใช้จ่าย',
+    employees: '👔 พนักงาน',
+    assets: '🏢 สินทรัพย์',
+    security: '🛡️ รหัส/สิทธิ์'
+  };
+  const mobBadge = document.getElementById('mobileActiveTabName');
+  if (mobBadge && tabLabels[tabName]) {
+    mobBadge.textContent = tabLabels[tabName];
+  }
+  ['dashboard', 'customers', 'orders', 'tms'].forEach(bKey => {
+    const bBtn = document.getElementById(`bottomNav-${bKey}`);
+    if (bBtn) {
+      if (bKey === tabName) {
+        bBtn.className = 'flex flex-col items-center justify-center flex-1 py-1 text-sky-400 font-bold transition text-[10px]';
+      } else {
+        bBtn.className = 'flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition text-[10px]';
+      }
+    }
+  });
+
   tabs.forEach(t => {
     const viewEl = document.getElementById(`view-${t}`);
     const btnEl = document.getElementById(`tab-${t}`);
@@ -2965,10 +2993,16 @@ function applyUserPermissionsUI() {
       btn.classList.add('hidden');
     }
   });
-  // Adjust grid columns dynamically so visible buttons stretch full width without scrolling
+  // Adjust grid columns dynamically on desktop (>=1024px); On mobile, let CSS flex handle it without any overlapping
   const navGrid = document.getElementById('mainNavGrid');
   if (navGrid) {
-    navGrid.style.gridTemplateColumns = `repeat(${allowed.length}, minmax(0, 1fr))`;
+    if (window.innerWidth >= 1024) {
+      navGrid.style.gridTemplateColumns = `repeat(${allowed.length}, minmax(0, 1fr))`;
+      navGrid.style.display = 'grid';
+    } else {
+      navGrid.style.gridTemplateColumns = '';
+      navGrid.style.display = '';
+    }
   }
   // Always open role-specific Dashboard after login
   switchTab('dashboard');
