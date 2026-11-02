@@ -52,6 +52,8 @@ function setThemeMode(mode) {
   const btnLight = document.getElementById('btnThemeLight');
   const btnDarkMobile = document.getElementById('btnThemeDarkMobile');
   const btnLightMobile = document.getElementById('btnThemeLightMobile');
+  const btnDarkSidebar = document.getElementById('btnThemeDarkSidebar');
+  const btnLightSidebar = document.getElementById('btnThemeLightSidebar');
 
   if (currentThemeMode === 'dark') {
     htmlEl.classList.add('dark');
@@ -59,12 +61,44 @@ function setThemeMode(mode) {
     if (btnLight) btnLight.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white text-[11px]';
     if (btnDarkMobile) btnDarkMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-white bg-sky-600';
     if (btnLightMobile) btnLightMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white';
+    if (btnDarkSidebar) btnDarkSidebar.className = 'px-2.5 py-1 rounded-md font-semibold text-white bg-sky-600';
+    if (btnLightSidebar) btnLightSidebar.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white';
   } else {
     htmlEl.classList.remove('dark');
     if (btnLight) btnLight.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 bg-amber-400 text-slate-950 shadow-xs text-[11px]';
     if (btnDark) btnDark.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white text-[11px]';
     if (btnLightMobile) btnLightMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-950 bg-amber-400';
     if (btnDarkMobile) btnDarkMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white';
+    if (btnLightSidebar) btnLightSidebar.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-950 bg-amber-400';
+    if (btnDarkSidebar) btnDarkSidebar.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white';
+  }
+}
+
+function toggleSidebar(show) {
+  const drawer = document.getElementById('sidebarDrawer');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!drawer || !backdrop) return;
+  if (show) {
+    backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    drawer.classList.remove('-translate-x-full');
+    drawer.classList.add('translate-x-0');
+    document.body.classList.add('overflow-hidden');
+  } else {
+    backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+    backdrop.classList.add('opacity-0', 'pointer-events-none');
+    drawer.classList.remove('translate-x-0');
+    drawer.classList.add('-translate-x-full');
+    document.body.classList.remove('overflow-hidden');
+  }
+}
+
+function toggleMobileMenu(show) {
+  toggleSidebar(show);
+  const modal = document.getElementById('mobileMenuModal');
+  if (modal) {
+    if (show) modal.classList.remove('hidden');
+    else modal.classList.add('hidden');
   }
 }
 
@@ -90,16 +124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-function toggleMobileMenu(show) {
-  const modal = document.getElementById('mobileMenuModal');
-  if (!modal) return;
-  if (show) {
-    modal.classList.remove('hidden');
-  } else {
-    modal.classList.add('hidden');
-  }
-}
-
 function switchTab(tabName) {
   const allTabs = ['dashboard', 'customers', 'orders', 'tms', 'production', 'cmms', 'inventory', 'costing', 'employees', 'assets', 'security'];
   const isExecutive = currentUser?.role === 'executive' || currentUser?.username === 'owner_inthara';
@@ -110,21 +134,25 @@ function switchTab(tabName) {
   }
   const tabs = allTabs;
   const tabLabels = {
-    dashboard: '📊 แดชบอร์ด',
-    customers: '👥 ลูกค้า',
-    orders: '🛒 สั่งน้ำดื่ม',
-    tms: '🚚 ขนส่ง/GPS',
-    production: '🏭 ผลิต & QC',
-    cmms: '🔧 ซ่อมบำรุง',
-    inventory: '🔄 สต็อก/ถัง',
-    costing: '💰 ค่าใช้จ่าย',
-    employees: '👔 พนักงาน',
-    assets: '🏢 สินทรัพย์',
-    security: '🛡️ รหัส/สิทธิ์'
+    dashboard: '📊 แดชบอร์ดภาพรวม',
+    customers: '👥 ลูกค้า & บัญชีถัง',
+    orders: '🛒 สั่งน้ำดื่ม & ออกบิล',
+    tms: '🚚 ขนส่ง & แผนที่ GPS',
+    production: '🏭 บันทึกการผลิต & QC',
+    cmms: '🔧 ซ่อมบำรุงเครื่องจักร',
+    inventory: '🔄 คลังสินค้า & ถังหมุนเวียน',
+    costing: '💰 ค่าใช้จ่าย & ต้นทุน',
+    employees: '👔 พนักงาน & บุคลากร',
+    assets: '🏢 ทะเบียนสินทรัพย์',
+    security: '🛡️ รหัสผ่าน & สิทธิ์'
   };
   const mobBadge = document.getElementById('mobileActiveTabName');
   if (mobBadge && tabLabels[tabName]) {
     mobBadge.textContent = tabLabels[tabName];
+  }
+  const headerBadge = document.getElementById('headerActiveTabBadge');
+  if (headerBadge && tabLabels[tabName]) {
+    headerBadge.textContent = tabLabels[tabName];
   }
   ['dashboard', 'customers', 'orders', 'tms'].forEach(bKey => {
     const bBtn = document.getElementById(`bottomNav-${bKey}`);
@@ -2966,7 +2994,7 @@ function applyUserPermissionsUI() {
   if (roleBadge && currentUser) {
     roleBadge.textContent = `${currentUser.displayName}`;
   }
-  const allTabs = ['dashboard', 'customers', 'orders', 'tms', 'production', 'cmms', 'inventory', 'costing', 'security'];
+  const allTabs = ['dashboard', 'customers', 'orders', 'tms', 'production', 'cmms', 'inventory', 'costing', 'employees', 'assets', 'security'];
   const isExecutive = currentUser?.role === 'executive' || currentUser?.username === 'owner_inthara';
   const allowed = isExecutive
     ? allTabs
@@ -2993,16 +3021,11 @@ function applyUserPermissionsUI() {
       btn.classList.add('hidden');
     }
   });
-  // Adjust grid columns dynamically on desktop (>=1024px); On mobile, let CSS flex handle it without any overlapping
+  // Navigation is clean vertical list inside Left Slide-out Drawer
   const navGrid = document.getElementById('mainNavGrid');
   if (navGrid) {
-    if (window.innerWidth >= 1024) {
-      navGrid.style.gridTemplateColumns = `repeat(${allowed.length}, minmax(0, 1fr))`;
-      navGrid.style.display = 'grid';
-    } else {
-      navGrid.style.gridTemplateColumns = '';
-      navGrid.style.display = '';
-    }
+    navGrid.style.gridTemplateColumns = '';
+    navGrid.style.display = '';
   }
   // Always open role-specific Dashboard after login
   switchTab('dashboard');
