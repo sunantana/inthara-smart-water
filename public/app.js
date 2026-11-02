@@ -107,6 +107,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   try { initMap(); } catch (e) { console.warn('initMap error:', e); }
   try { initThaiAddressDropdowns(); } catch (e) { console.warn('initThaiAddressDropdowns error:', e); }
   try { initCustomerPickerMap(); } catch (e) { console.warn('initCustomerPickerMap error:', e); }
+
+  window.addEventListener('resize', () => {
+    if (typeof map !== 'undefined' && map) setTimeout(() => map.invalidateSize(), 150);
+    if (typeof custPickerMap !== 'undefined' && custPickerMap) setTimeout(() => custPickerMap.invalidateSize(), 150);
+  });
   
   // Critical: Always fetch and render all ERP data
   try {
@@ -158,9 +163,9 @@ function switchTab(tabName) {
     const bBtn = document.getElementById(`bottomNav-${bKey}`);
     if (bBtn) {
       if (bKey === tabName) {
-        bBtn.className = 'flex flex-col items-center justify-center flex-1 py-1 text-sky-400 font-bold transition text-[10px]';
+        bBtn.className = 'flex flex-col items-center justify-center flex-1 py-1 text-sky-600 dark:text-sky-400 font-bold transition text-[10px]';
       } else {
-        bBtn.className = 'flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition text-[10px]';
+        bBtn.className = 'flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition text-[10px]';
       }
     }
   });

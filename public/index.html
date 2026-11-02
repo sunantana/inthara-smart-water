@@ -2,13 +2,19 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Inthara Smart Water ERP — ระบบบริหารจัดการโรงงานน้ำดื่มอินธารา</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
     body {
       font-family: 'Prompt', sans-serif;
       background-color: #f1f5f9;
@@ -179,6 +185,36 @@
       font-size: 0.8125rem !important;
       white-space: normal !important;
     }
+
+    /* Mobile Form Input Auto-Zoom Prevention (iOS Safari fix) */
+    @media screen and (max-width: 768px) {
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      input[type="time"],
+      input[type="tel"],
+      input[type="password"],
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Touch-friendly scrolling for all tables and containers */
+    .overflow-x-auto, .overflow-y-auto {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    /* Mobile Touch Targets & Padding */
+    @media (max-width: 640px) {
+      button:not(.nav-tab):not(table button):not(.badge-btn):not(#headerActiveTabBadge button) {
+        min-height: 36px;
+      }
+      .card-mobile-tight {
+        padding: 0.875rem !important;
+      }
+    }
     .custom-marker {
       display: flex;
       align-items: center;
@@ -254,8 +290,8 @@
   <!-- =========================================================
        FULL-SCREEN MANDATORY LOGIN GATEWAY (CLEAN & MINIMAL)
   ========================================================== -->
-  <div id="loginGateScreen" class="fixed inset-0 z-[100] bg-gradient-to-br from-slate-950 via-sky-950 to-slate-900 flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 p-7">
+  <div id="loginGateScreen" class="fixed inset-0 z-[100] bg-gradient-to-br from-slate-950 via-sky-950 to-slate-900 flex items-center justify-center p-3 sm:p-4">
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-y-auto max-h-[96vh] border border-slate-200 p-5 sm:p-7">
       <!-- Brand Header -->
       <div class="flex items-center gap-3 pb-5 mb-5 border-b border-slate-100">
         <div class="w-11 h-11 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-xl shadow">💧</div>
@@ -504,8 +540,8 @@
     <section id="view-customers" class="hidden space-y-4">
 
       <!-- Card 1: Flat Customer Form with Vibrant Title Header -->
-      <div id="customerMasterFormCard" class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
-        <div class="-mx-5 -mt-5 px-5 py-3.5 rounded-t-xl bg-gradient-to-r from-sky-700 via-sky-600 to-indigo-600 text-white flex flex-wrap items-center justify-between gap-2 shadow-sm">
+      <div id="customerMasterFormCard" class="bg-white rounded-xl p-3.5 sm:p-5 shadow-sm border border-slate-200 space-y-4">
+        <div class="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 px-3.5 sm:px-5 py-3 rounded-t-xl bg-gradient-to-r from-sky-700 via-sky-600 to-indigo-600 text-white flex flex-wrap items-center justify-between gap-2 shadow-sm">
           <div class="flex items-center gap-2.5">
             <h2 id="custFormTitle" class="font-bold text-white text-base tracking-wide">👥 ทะเบียนลูกค้า</h2>
             <span id="custFormModeBadge" class="bg-white/20 text-white border border-white/30 text-xs font-semibold px-2.5 py-0.5 rounded-full">
@@ -839,17 +875,17 @@
       </div>
 
       <!-- Card 2: Customer List Table + Vibrant Title Header -->
-      <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-3">
-        <div class="-mx-5 -mt-5 px-5 py-3.5 rounded-t-xl bg-gradient-to-r from-indigo-700 via-sky-700 to-teal-600 text-white flex flex-wrap items-center justify-between gap-3 shadow-sm">
-          <div class="flex flex-wrap items-center gap-2.5 text-xs">
+      <div class="bg-white rounded-xl p-3.5 sm:p-5 shadow-sm border border-slate-200 space-y-3">
+        <div class="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 px-3.5 sm:px-5 py-3 rounded-t-xl bg-gradient-to-r from-indigo-700 via-sky-700 to-teal-600 text-white flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
             <span class="font-bold text-white text-sm tracking-wide mr-1">📋 รายชื่อลูกค้า</span>
             <span class="bg-white/15 border border-white/25 px-2.5 py-0.5 rounded-full text-white">ทั้งหมด <strong id="crmKpiTotalCustomers" class="text-amber-200">0 ราย</strong> (<span id="crmKpiActiveSub">ปกติ 0</span>)</span>
             <span class="bg-white/15 border border-white/25 px-2.5 py-0.5 rounded-full text-white">ค้างชำระ <strong id="crmKpiTotalCredit" class="text-rose-200">฿0</strong></span>
             <span class="bg-white/15 border border-white/25 px-2.5 py-0.5 rounded-full text-white">ถังอยู่กับลูกค้า <strong id="crmKpiTotalBottles" class="text-sky-200">0 ถัง</strong></span>
             <span class="bg-white/15 border border-white/25 px-2.5 py-0.5 rounded-full text-white">มัดจำสะสม <strong id="crmKpiTotalDeposit" class="text-emerald-200">฿0</strong></span>
           </div>
-          <div class="flex flex-wrap items-center gap-2 text-xs">
-            <input id="custSearchInput" oninput="renderCustomersMasterView()" type="text" class="border border-slate-200 bg-white text-slate-800 rounded-lg px-2.5 py-1.5 w-48" placeholder="🔍 ค้นหาชื่อ, รหัส, ตำบล..." />
+          <div class="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto">
+            <input id="custSearchInput" oninput="renderCustomersMasterView()" type="text" class="border border-slate-200 bg-white text-slate-800 rounded-lg px-2.5 py-1.5 w-full sm:w-48" placeholder="🔍 ค้นหาชื่อ, รหัส, ตำบล..." />
             <select id="custZoneFilter" onchange="renderCustomersMasterView()" class="border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700">
               <option value="ALL">ทุกตำบล (อ.ท่าปลา)</option>
               <option value="โซนท่าปลา - ต.จริม">ต.จริม</option>
@@ -898,8 +934,8 @@
     <section id="view-orders" class="hidden space-y-4">
 
       <!-- Card 1: Flat Sales Order Form with Vibrant Title Header -->
-      <div id="salesOrderFormCard" class="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
-        <div class="-mx-5 -mt-5 px-5 py-3.5 rounded-t-xl bg-gradient-to-r from-teal-700 via-teal-600 to-sky-600 text-white flex flex-wrap items-center justify-between gap-2 shadow-sm">
+      <div id="salesOrderFormCard" class="bg-white rounded-xl p-3.5 sm:p-5 shadow-sm border border-slate-200 space-y-4">
+        <div class="-mx-3.5 -mt-3.5 sm:-mx-5 sm:-mt-5 px-3.5 sm:px-5 py-3 rounded-t-xl bg-gradient-to-r from-teal-700 via-teal-600 to-sky-600 text-white flex flex-wrap items-center justify-between gap-2 shadow-sm">
           <div class="flex items-center gap-2.5">
             <h2 id="ordFormTitle" class="font-bold text-white text-base tracking-wide">🛒 สั่งออเดอร์น้ำดื่ม</h2>
             <span id="ordFormModeBadge" class="bg-white/20 text-white border border-white/30 text-xs font-semibold px-2.5 py-0.5 rounded-full">
@@ -1078,20 +1114,20 @@
         <!-- High-Efficiency Toolbar: 3 Status Tabs + Date Picker + Quick Buttons + Search + Inline Summary -->
         <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
           <!-- 3 Status Filter Tabs (ยังไม่ได้จัดส่ง, จัดส่งสำเร็จแล้ว, ทั้งหมด) -->
-          <div class="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-lg shrink-0">
-            <button type="button" id="btnOrdFilterPending" onclick="setOrderFilterStatus('pending')" class="px-3 py-1 rounded-md text-xs font-bold transition flex items-center gap-1.5 shadow-xs bg-sky-700 text-white">
-              <span>⏳ ยังไม่ได้จัดส่ง</span>
+          <div class="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800 p-0.5 rounded-lg max-w-full overflow-x-auto no-scrollbar">
+            <button type="button" id="btnOrdFilterPending" onclick="setOrderFilterStatus('pending')" class="px-2.5 sm:px-3 py-1 rounded-md text-xs font-bold transition flex items-center gap-1.5 shadow-xs bg-sky-700 text-white shrink-0">
+              <span>⏳ ยังไม่ได้ส่ง</span>
               <span id="badgeOrdPendingTab" class="bg-white/20 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
             </button>
-            <button type="button" id="btnOrdFilterCompleted" onclick="setOrderFilterStatus('completed')" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 bg-transparent">
-              <span>✅ จัดส่งสำเร็จแล้ว</span>
+            <button type="button" id="btnOrdFilterCompleted" onclick="setOrderFilterStatus('completed')" class="px-2.5 sm:px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 bg-transparent shrink-0">
+              <span>✅ ส่งแล้ว</span>
               <span id="badgeOrdCompletedTab" class="bg-slate-300 text-slate-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
             </button>
-            <button type="button" id="btnOrdFilterUnpaid" onclick="setOrderFilterStatus('unpaid')" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-amber-800 transition flex items-center gap-1.5 bg-transparent">
+            <button type="button" id="btnOrdFilterUnpaid" onclick="setOrderFilterStatus('unpaid')" class="px-2.5 sm:px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-amber-800 transition flex items-center gap-1.5 bg-transparent shrink-0">
               <span>⚠️ ค้างชำระ</span>
               <span id="badgeOrdUnpaidTab" class="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
             </button>
-            <button type="button" id="btnOrdFilterAll" onclick="setOrderFilterStatus('all')" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 bg-transparent">
+            <button type="button" id="btnOrdFilterAll" onclick="setOrderFilterStatus('all')" class="px-2.5 sm:px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 bg-transparent shrink-0">
               <span>📋 ทั้งหมด</span>
               <span id="badgeOrdAllTab" class="bg-slate-300 text-slate-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
             </button>
@@ -1265,7 +1301,7 @@
           </div>
 
           <div id="tmsInRouteContainer">
-            <div id="orderedStopsList" class="space-y-2 max-h-[560px] overflow-y-auto pr-1"></div>
+            <div id="orderedStopsList" class="space-y-2 max-h-[380px] lg:max-h-[560px] overflow-y-auto pr-1"></div>
           </div>
         </div>
 
@@ -1279,7 +1315,7 @@
               <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span> ส่งแล้ว</span>
             </div>
           </div>
-          <div id="tmsMap" class="w-full rounded-xl border border-slate-200 overflow-hidden flex-1 min-h-[560px]"></div>
+          <div id="tmsMap" class="w-full rounded-xl border border-slate-200 overflow-hidden flex-1 h-[320px] sm:h-[420px] lg:h-[560px] min-h-[320px]"></div>
         </div>
       </div>
       
@@ -1494,33 +1530,35 @@
           </div>
 
           <!-- แถวที่ 2: แผนการผลิต vs ผลิตได้จริง (4 ขนาด) -->
-          <div class="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
-            <div class="text-xs font-bold text-slate-800 flex items-center justify-between">
-              <span>📋 แผนการผลิต และ ผลิตได้จริง:</span>
-              <span class="text-[11px] text-slate-500 font-normal">ค่าเริ่มต้น = 0 (กรอกจำนวนตามรอบผลิต)</span>
-            </div>
-            <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold text-slate-600 border-b border-slate-200 pb-1.5">
-              <div class="text-left text-slate-700">รายการ</div>
-              <div class="text-sky-900">ถัง 18.9 ลิตร (ถัง)</div>
-              <div class="text-teal-900">ขวด 350 ml (แพ็ค)</div>
-              <div class="text-blue-900">ขวด 600 ml (แพ็ค)</div>
-              <div class="text-indigo-900">ขวด 1.5 L (แพ็ค)</div>
-            </div>
-            <!-- แถวแผนการผลิต -->
-            <div class="grid grid-cols-5 gap-2 items-center text-xs">
-              <div class="text-sky-800 font-bold flex items-center gap-1">🎯 แผนผลิต</div>
-              <div><input id="plan189" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
-              <div><input id="plan350" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
-              <div><input id="plan600" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
-              <div><input id="plan1500" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
-            </div>
-            <!-- แถวผลิตได้จริง -->
-            <div class="grid grid-cols-5 gap-2 items-center text-xs">
-              <div class="text-emerald-700 font-bold flex items-center gap-1">✅ ผลิตจริง</div>
-              <div><input id="prod189" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
-              <div><input id="prod350" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
-              <div><input id="prod600" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
-              <div><input id="prod1500" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
+          <div class="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2.5 overflow-x-auto">
+            <div class="min-w-[480px]">
+              <div class="text-xs font-bold text-slate-800 flex items-center justify-between mb-2">
+                <span>📋 แผนการผลิต และ ผลิตได้จริง:</span>
+                <span class="text-[11px] text-slate-500 font-normal">ค่าเริ่มต้น = 0 (กรอกจำนวนตามรอบผลิต)</span>
+              </div>
+              <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold text-slate-600 border-b border-slate-200 pb-1.5">
+                <div class="text-left text-slate-700">รายการ</div>
+                <div class="text-sky-900">ถัง 18.9 ลิตร (ถัง)</div>
+                <div class="text-teal-900">ขวด 350 ml (แพ็ค)</div>
+                <div class="text-blue-900">ขวด 600 ml (แพ็ค)</div>
+                <div class="text-indigo-900">ขวด 1.5 L (แพ็ค)</div>
+              </div>
+              <!-- แถวแผนการผลิต -->
+              <div class="grid grid-cols-5 gap-2 items-center text-xs mt-1.5">
+                <div class="text-sky-800 font-bold flex items-center gap-1">🎯 แผนผลิต</div>
+                <div><input id="plan189" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
+                <div><input id="plan350" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
+                <div><input id="plan600" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
+                <div><input id="plan1500" type="number" min="0" placeholder="0" class="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-slate-800 bg-white" value="0" /></div>
+              </div>
+              <!-- แถวผลิตได้จริง -->
+              <div class="grid grid-cols-5 gap-2 items-center text-xs mt-1.5">
+                <div class="text-emerald-700 font-bold flex items-center gap-1">✅ ผลิตจริง</div>
+                <div><input id="prod189" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
+                <div><input id="prod350" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
+                <div><input id="prod600" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
+                <div><input id="prod1500" type="number" min="0" placeholder="0" required class="w-full border-2 border-emerald-400 rounded-lg px-2 py-1.5 text-center font-mono font-bold text-emerald-800 bg-white" value="0" /></div>
+              </div>
             </div>
           </div>
 
@@ -1601,8 +1639,8 @@
             0 รอบผลิต
           </span>
         </div>
-        <div class="w-full">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="w-full overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[680px]">
             <thead>
               <tr class="bg-slate-100/80 text-slate-700 border-b border-slate-200 text-xs font-semibold">
                 <th class="p-2.5">Lot No. / วันที่</th>
@@ -2210,8 +2248,8 @@
   </main>
 
   <!-- MODAL: PRICE TIER MANAGER (แก้ไข/จัดการระดับราคา) -->
-  <div id="modal-price-tiers" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+  <div id="modal-price-tiers" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-200 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-xl">⚙️</span>
@@ -2256,8 +2294,8 @@
   </div>
 
   <!-- MODAL: Add / Edit Customer GPS Stop -->
-  <div id="modalAddStop" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+  <div id="modalAddStop" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-2.5">
         <h3 class="font-bold text-slate-800">📍 เพิ่มจุดส่งน้ำดื่ม / ลูกค้าใหม่ (พิกัด GPS)</h3>
         <button onclick="closeAddStopModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
@@ -2466,8 +2504,8 @@
   </div>
 
   <!-- MODAL: Record Machine Maintenance -->
-  <div id="modalMaintenance" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl space-y-4">
+  <div id="modalMaintenance" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-2.5">
         <h3 class="font-bold text-slate-800">🔧 บันทึกการซ่อมบำรุงเครื่องจักร (PM / BM)</h3>
         <button onclick="closeMaintenanceModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
@@ -2625,8 +2663,8 @@
   </div>
 
   <!-- MODAL: Cloud Storage Inspector (FortiGate Bypass via API Tunnel) -->
-  <div id="modalCloudInspector" class="fixed inset-0 bg-slate-950/75 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+  <div id="modalCloudInspector" class="fixed inset-0 bg-slate-950/75 hidden items-center justify-center z-50 p-3 sm:p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b pb-3">
         <div>
           <div class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full mb-1">
@@ -2677,8 +2715,8 @@
   </div>
 
   <!-- MODAL: Customer Security & PIN Management -->
-  <div id="modalCustomerSecurity" class="fixed inset-0 bg-slate-950/70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+  <div id="modalCustomerSecurity" class="fixed inset-0 bg-slate-950/70 hidden items-center justify-center z-50 p-3 sm:p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
       <div class="flex items-start justify-between border-b pb-3">
         <div>
           <div class="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full mb-1">
@@ -2784,8 +2822,8 @@
           <span class="text-[10px] font-normal text-slate-500" id="billPayOrdersCountNotice"></span>
         </div>
         
-        <div class="max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xs">
-          <table class="w-full text-left text-xs border-collapse">
+        <div class="max-h-48 overflow-x-auto overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xs">
+          <table class="w-full text-left text-xs border-collapse min-w-[340px]">
             <thead>
               <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 text-[11px]">
                 <th class="p-2 text-center w-10">เลือก</th>
@@ -2899,31 +2937,33 @@
         </div>
 
         <!-- Items Table -->
-        <table class="w-full text-left border-collapse text-xs border border-slate-200">
-          <thead>
-            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
-              <th class="p-2">รายการสินค้า</th>
-              <th class="p-2 text-center">จำนวน</th>
-              <th class="p-2 text-right">ราคา/หน่วย</th>
-              <th class="p-2 text-right">จำนวนเงิน</th>
-            </tr>
-          </thead>
-          <tbody id="slipItemsTableBody" class="divide-y divide-slate-200"></tbody>
-          <tfoot id="slipTableTfoot">
-            <tr class="bg-slate-50 font-bold border-t border-slate-200">
-              <td colspan="3" class="p-2 text-right">ยอดรวมสุทธิทั้งสิ้น:</td>
-              <td id="slipTotalAmount" class="p-2 text-right font-mono text-teal-800 text-sm"></td>
-            </tr>
-            <tr id="slipPaidRow" class="text-xs text-slate-700">
-              <td colspan="3" class="p-1.5 text-right">ชำระแล้ว / รับเงินจริง:</td>
-              <td id="slipPaidAmount" class="p-1.5 text-right font-mono font-bold text-slate-800"></td>
-            </tr>
-            <tr id="slipUnpaidRow" class="text-xs text-amber-900 bg-amber-50/70 border-t border-amber-200 font-bold">
-              <td colspan="3" class="p-1.5 text-right">ยอดค้างชำระ (ลงบัญชี):</td>
-              <td id="slipUnpaidAmount" class="p-1.5 text-right font-mono font-black text-rose-700"></td>
-            </tr>
-          </tfoot>
-        </table>
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[320px]">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                <th class="p-2">รายการสินค้า</th>
+                <th class="p-2 text-center">จำนวน</th>
+                <th class="p-2 text-right">ราคา/หน่วย</th>
+                <th class="p-2 text-right">จำนวนเงิน</th>
+              </tr>
+            </thead>
+            <tbody id="slipItemsTableBody" class="divide-y divide-slate-200"></tbody>
+            <tfoot id="slipTableTfoot">
+              <tr class="bg-slate-50 font-bold border-t border-slate-200">
+                <td colspan="3" class="p-2 text-right">ยอดรวมสุทธิทั้งสิ้น:</td>
+                <td id="slipTotalAmount" class="p-2 text-right font-mono text-teal-800 text-sm"></td>
+              </tr>
+              <tr id="slipPaidRow" class="text-xs text-slate-700">
+                <td colspan="3" class="p-1.5 text-right">ชำระแล้ว / รับเงินจริง:</td>
+                <td id="slipPaidAmount" class="p-1.5 text-right font-mono font-bold text-slate-800"></td>
+              </tr>
+              <tr id="slipUnpaidRow" class="text-xs text-amber-900 bg-amber-50/70 border-t border-amber-200 font-bold">
+                <td colspan="3" class="p-1.5 text-right">ยอดค้างชำระ (ลงบัญชี):</td>
+                <td id="slipUnpaidAmount" class="p-1.5 text-right font-mono font-black text-rose-700"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
 
         <!-- Payment & Notes -->
         <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
@@ -3475,24 +3515,24 @@
   </div>
 
   <!-- Fixed Mobile Bottom Navigation Bar (App-Style, 100% Mobile Friendly) -->
-  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t border-slate-800/90 backdrop-blur-md px-2 py-1.5 flex items-center justify-around shadow-2xl">
-    <button onclick="switchTab('dashboard')" id="bottomNav-dashboard" class="flex flex-col items-center justify-center flex-1 py-1 text-sky-400 font-bold transition text-[10px]">
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md px-2 py-1 flex items-center justify-around shadow-2xl transition-colors" style="padding-bottom: max(0.375rem, env(safe-area-inset-bottom, 0.375rem));">
+    <button onclick="switchTab('dashboard')" id="bottomNav-dashboard" class="flex flex-col items-center justify-center flex-1 py-1 text-sky-600 dark:text-sky-400 font-bold transition text-[10px]">
       <span class="text-base">📊</span>
       <span class="mt-0.5">แดชบอร์ด</span>
     </button>
-    <button onclick="switchTab('customers')" id="bottomNav-customers" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition text-[10px]">
+    <button onclick="switchTab('customers')" id="bottomNav-customers" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition text-[10px]">
       <span class="text-base">👥</span>
       <span class="mt-0.5">ลูกค้า</span>
     </button>
-    <button onclick="switchTab('orders')" id="bottomNav-orders" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition text-[10px]">
+    <button onclick="switchTab('orders')" id="bottomNav-orders" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition text-[10px]">
       <span class="text-base">🛒</span>
       <span class="mt-0.5">สั่งน้ำ</span>
     </button>
-    <button onclick="switchTab('tms')" id="bottomNav-tms" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-slate-200 transition text-[10px]">
+    <button onclick="switchTab('tms')" id="bottomNav-tms" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition text-[10px]">
       <span class="text-base">🚚</span>
       <span class="mt-0.5">ขนส่ง</span>
     </button>
-    <button onclick="toggleMobileMenu(true)" class="flex flex-col items-center justify-center flex-1 py-1 text-amber-400 hover:text-amber-300 font-semibold transition text-[10px]">
+    <button onclick="toggleSidebar(true)" class="flex flex-col items-center justify-center flex-1 py-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-semibold transition text-[10px]">
       <span class="text-base">☰</span>
       <span class="mt-0.5">เมนูทั้งหมด</span>
     </button>
