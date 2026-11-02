@@ -42,27 +42,34 @@ let currentUser = {
   }
 };
 let authToken = localStorage.getItem('inthara_auth_token') || null;
-let currentThemeMode = 'dark';
+let currentThemeMode = localStorage.getItem('inthara_theme_mode') || 'light';
 
 function setThemeMode(mode) {
-  currentThemeMode = mode === 'light' ? 'light' : 'dark';
+  currentThemeMode = mode === 'dark' ? 'dark' : 'light';
+  localStorage.setItem('inthara_theme_mode', currentThemeMode);
   const htmlEl = document.documentElement;
   const btnDark = document.getElementById('btnThemeDark');
   const btnLight = document.getElementById('btnThemeLight');
+  const btnDarkMobile = document.getElementById('btnThemeDarkMobile');
+  const btnLightMobile = document.getElementById('btnThemeLightMobile');
 
   if (currentThemeMode === 'dark') {
     htmlEl.classList.add('dark');
     if (btnDark) btnDark.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 bg-sky-600 text-white shadow-xs text-[11px]';
     if (btnLight) btnLight.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white text-[11px]';
+    if (btnDarkMobile) btnDarkMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-white bg-sky-600';
+    if (btnLightMobile) btnLightMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white';
   } else {
     htmlEl.classList.remove('dark');
     if (btnLight) btnLight.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 bg-amber-400 text-slate-950 shadow-xs text-[11px]';
     if (btnDark) btnDark.className = 'h-full px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white text-[11px]';
+    if (btnLightMobile) btnLightMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-950 bg-amber-400';
+    if (btnDarkMobile) btnDarkMobile.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white';
   }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  try { setThemeMode('dark'); } catch (e) { console.warn('setThemeMode error:', e); }
+  try { setThemeMode(localStorage.getItem('inthara_theme_mode') || 'light'); } catch (e) { console.warn('setThemeMode error:', e); }
   try { initMap(); } catch (e) { console.warn('initMap error:', e); }
   try { initThaiAddressDropdowns(); } catch (e) { console.warn('initThaiAddressDropdowns error:', e); }
   try { initCustomerPickerMap(); } catch (e) { console.warn('initCustomerPickerMap error:', e); }

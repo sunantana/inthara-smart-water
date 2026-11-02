@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th" class="dark">
+<html lang="th">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -414,8 +414,8 @@
       <!-- Drawer Footer: Dark/Light Mode + Close -->
       <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
         <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 text-xs">
-          <button type="button" onclick="setThemeMode('dark'); toggleMobileMenu(false);" class="px-2.5 py-1 rounded-md font-semibold text-white bg-sky-600">🌙 Dark</button>
-          <button type="button" onclick="setThemeMode('light'); toggleMobileMenu(false);" class="px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white">☀️ Light</button>
+          <button type="button" id="btnThemeLightMobile" onclick="setThemeMode('light'); toggleMobileMenu(false);" class="px-2.5 py-1 rounded-md font-semibold text-slate-950 bg-amber-400">☀️ Light</button>
+          <button type="button" id="btnThemeDarkMobile" onclick="setThemeMode('dark'); toggleMobileMenu(false);" class="px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white">🌙 Dark</button>
         </div>
         <button onclick="toggleMobileMenu(false)" class="text-xs bg-slate-800 text-slate-300 hover:text-white px-4 py-1.5 rounded-lg font-semibold transition">
           ปิดเมนู ✕
@@ -462,11 +462,11 @@
 
         <!-- 4. Dark / Light Mode Selector (Desktop) -->
         <div class="hidden lg:flex h-7 items-center bg-slate-800/80 border border-slate-700/70 rounded-lg p-0.5 text-[11px]">
-          <button type="button" id="btnThemeDark" onclick="setThemeMode('dark')" class="h-full px-2 rounded-md font-semibold transition flex items-center gap-1 bg-sky-600 text-white shadow-xs text-[11px]">
-            🌙 Dark
-          </button>
-          <button type="button" id="btnThemeLight" onclick="setThemeMode('light')" class="h-full px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white text-[11px]">
+          <button type="button" id="btnThemeLight" onclick="setThemeMode('light')" class="h-full px-2 rounded-md font-semibold transition flex items-center gap-1 bg-amber-400 text-slate-950 shadow-xs text-[11px]">
             ☀️ Light
+          </button>
+          <button type="button" id="btnThemeDark" onclick="setThemeMode('dark')" class="h-full px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white text-[11px]">
+            🌙 Dark
           </button>
         </div>
 
