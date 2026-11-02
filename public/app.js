@@ -4865,16 +4865,16 @@ function renderOrdersView() {
           ${completedInfo}
         </td>
         <td class="p-2 text-center whitespace-nowrap">
-          ${q189 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q189}</div><div class="text-[9px] text-slate-400">@฿${o.unitPrice189L || 15}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
+          ${q189 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q189}</div><div class="text-[10px] text-slate-400">@฿${o.unitPrice189L || 15}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
         </td>
         <td class="p-2 text-center whitespace-nowrap">
-          ${q350 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q350}</div><div class="text-[9px] text-slate-400">@฿${o.unitPrice350ml || 35}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
+          ${q350 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q350}</div><div class="text-[10px] text-slate-400">@฿${o.unitPrice350ml || 35}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
         </td>
         <td class="p-2 text-center whitespace-nowrap">
-          ${q600 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q600}</div><div class="text-[9px] text-slate-400">@฿${o.unitPrice600ml || 35}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
+          ${q600 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q600}</div><div class="text-[10px] text-slate-400">@฿${o.unitPrice600ml || 35}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
         </td>
         <td class="p-2 text-center whitespace-nowrap">
-          ${q1500 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q1500}</div><div class="text-[9px] text-slate-400">@฿${o.unitPrice1500ml || 35}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
+          ${q1500 > 0 ? `<div class="font-bold text-slate-800 text-xs">${q1500}</div><div class="text-[10px] text-slate-400">@฿${o.unitPrice1500ml || 35}</div>` : '<div class="text-slate-300 text-xs">-</div>'}
         </td>
         <td class="p-2 text-right font-mono font-bold text-teal-800 text-xs whitespace-nowrap">
           ฿${Number(o.totalAmount || 0).toLocaleString()}

@@ -215,6 +215,39 @@
         padding: 0.875rem !important;
       }
     }
+
+    /* Universal Typography & Font Polish: Prompt Font across entire system */
+    *, *::before, *::after {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    input, button, select, textarea, table, th, td {
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    }
+
+    /* Monospace for codes & digits with Prompt fallback for Thai vowels */
+    .font-mono {
+      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Prompt", monospace !important;
+    }
+
+    /* Prevent Thai tone mark clipping and ensure beautiful table fonts */
+    table th, table td {
+      line-height: 1.55 !important;
+      padding: 0.625rem 0.625rem !important;
+      vertical-align: middle !important;
+    }
+
+    table th {
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      letter-spacing: 0.01em;
+    }
+
+    /* Subtle scroll indicator for scrollable tables */
+    .overflow-x-auto {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+    }
+
     .custom-marker {
       display: flex;
       align-items: center;
@@ -906,8 +939,8 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[950px]">
             <thead>
               <tr class="bg-slate-50 text-slate-600 border-y border-slate-200">
                 <th class="p-2.5">รหัส</th>
@@ -1159,8 +1192,8 @@
         </div>
 
         <!-- Orders Table (Compact, High-Density 10 Columns) -->
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[950px]">
             <thead>
               <tr class="bg-slate-100 text-slate-700 border-y border-slate-200">
                 <th class="p-2 font-bold whitespace-nowrap">เลขที่ออเดอร์</th>
@@ -1352,8 +1385,8 @@
           <div id="savedTripsDailySummary"></div>
 
           <!-- Trips Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs min-w-[900px]">
               <thead>
                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                   <th class="p-2.5 font-bold">รหัสสายส่ง/รหัสงาน</th>
@@ -1640,7 +1673,7 @@
           </span>
         </div>
         <div class="w-full overflow-x-auto rounded-xl border border-slate-200">
-          <table class="w-full text-left border-collapse text-xs min-w-[680px]">
+          <table class="w-full text-left border-collapse text-xs min-w-[850px]">
             <thead>
               <tr class="bg-slate-100/80 text-slate-700 border-b border-slate-200 text-xs font-semibold">
                 <th class="p-2.5">Lot No. / วันที่</th>
@@ -1677,8 +1710,8 @@
       <!-- Maintenance History Table -->
       <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
         <h3 class="font-bold text-slate-800 mb-3">🛠️ ประวัติการซ่อมบำรุง การล้างไส้กรอง และการเปลี่ยนอะไหล่</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs md:text-sm">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[750px]">
             <thead>
               <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                 <th class="p-2.5">เลขที่ใบงาน</th>
@@ -1747,8 +1780,8 @@
             </div>
             <span class="text-xs text-slate-400">อัปเดตแบบเรียลไทม์</span>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs md:text-sm">
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[650px]">
               <thead>
                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
                   <th class="p-2.5">รหัส SKU</th>
@@ -1810,8 +1843,8 @@
               <span>+</span> <span>สั่งซื้อ/รับเข้าล็อตใหม่</span>
             </button>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs md:text-sm">
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[850px]">
               <thead>
                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
                   <th class="p-2.5">Lot No.</th>
@@ -1841,8 +1874,8 @@
               <p class="text-xs text-slate-500">ป้องกันปัญหาถังน้ำหาย ตรวจสอบยอดถังค้างและยอดค้างชำระรายร้านค้า</p>
             </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs md:text-sm">
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[650px]">
               <thead>
                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
                   <th class="p-2.5">ลูกค้า / ร้านค้า</th>
@@ -1915,8 +1948,8 @@
         <!-- Expense Table & Summary -->
         <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
           <div id="costSummaryCards" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs md:text-sm">
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs md:text-sm min-w-[650px]">
               <thead>
                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                   <th class="p-2.5">รหัส</th>
@@ -2021,7 +2054,7 @@
       <!-- Employees Table Card -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
+          <table class="w-full text-left text-xs border-collapse min-w-[1050px]">
             <thead class="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-semibold select-none">
               <tr>
                 <th class="p-3 w-16">รหัส</th>
@@ -2151,7 +2184,7 @@
       <!-- Assets Table Card -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
+          <table class="w-full text-left text-xs border-collapse min-w-[950px]">
             <thead class="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-semibold select-none">
               <tr>
                 <th class="p-3 w-24">รหัสสินทรัพย์</th>
@@ -2203,8 +2236,8 @@
           </button>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[950px]">
             <thead>
               <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
                 <th class="p-2.5 text-center">ระดับ</th>
@@ -2226,8 +2259,8 @@
           <h3 class="font-bold text-slate-800">📜 บันทึกเหตุการณ์ความปลอดภัยและการเข้าใช้งานระบบ (Security Audit Trail)</h3>
           <span class="text-xs text-emerald-700 font-medium">● บันทึกอัตโนมัติแบบ Real-time</span>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs min-w-[950px]">
             <thead>
               <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                 <th class="p-2.5">รหัส</th>
@@ -2262,7 +2295,7 @@
       </div>
 
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
+        <table class="w-full text-left text-xs border-collapse min-w-[550px]">
           <thead>
             <tr class="bg-slate-100 text-slate-700 border-y border-slate-200">
               <th class="p-2.5 font-bold">ชื่อระดับราคา</th>
@@ -2692,7 +2725,7 @@
       </div>
 
       <div class="overflow-x-auto max-h-72 border border-slate-200 rounded-xl">
-        <table class="w-full text-left border-collapse text-xs">
+        <table class="w-full text-left border-collapse text-xs min-w-[550px]">
           <thead>
             <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
               <th class="p-2.5">ชื่อไฟล์บน Google Drive</th>
@@ -2823,7 +2856,7 @@
         </div>
         
         <div class="max-h-48 overflow-x-auto overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xs">
-          <table class="w-full text-left text-xs border-collapse min-w-[340px]">
+          <table class="w-full text-left text-xs border-collapse min-w-[420px]">
             <thead>
               <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 text-[11px]">
                 <th class="p-2 text-center w-10">เลือก</th>
@@ -2938,7 +2971,7 @@
 
         <!-- Items Table -->
         <div class="overflow-x-auto rounded-lg border border-slate-200">
-          <table class="w-full text-left border-collapse text-xs min-w-[320px]">
+          <table class="w-full text-left border-collapse text-xs min-w-[380px]">
             <thead>
               <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
                 <th class="p-2">รายการสินค้า</th>
