@@ -134,17 +134,17 @@ function switchTab(tabName) {
   }
   const tabs = allTabs;
   const tabLabels = {
-    dashboard: '📊 แดชบอร์ดภาพรวม',
-    customers: '👥 ลูกค้า & บัญชีถัง',
-    orders: '🛒 สั่งน้ำดื่ม & ออกบิล',
-    tms: '🚚 ขนส่ง & แผนที่ GPS',
-    production: '🏭 บันทึกการผลิต & QC',
-    cmms: '🔧 ซ่อมบำรุงเครื่องจักร',
-    inventory: '🔄 คลังสินค้า & ถังหมุนเวียน',
-    costing: '💰 ค่าใช้จ่าย & ต้นทุน',
-    employees: '👔 พนักงาน & บุคลากร',
-    assets: '🏢 ทะเบียนสินทรัพย์',
-    security: '🛡️ รหัสผ่าน & สิทธิ์'
+    dashboard: '📊 แดชบอร์ด',
+    customers: '👥 ลูกค้า',
+    orders: '🛒 สั่งน้ำดื่ม',
+    tms: '🚚 ขนส่ง/GPS',
+    production: '🏭 ผลิต & QC',
+    cmms: '🔧 ซ่อมบำรุง',
+    inventory: '🔄 สต็อกสินค้า',
+    costing: '💰 ค่าใช้จ่าย',
+    employees: '👔 พนักงาน',
+    assets: '🏢 สินทรัพย์',
+    security: '🛡️ สิทธิ์ผู้ใช้'
   };
   const mobBadge = document.getElementById('mobileActiveTabName');
   if (mobBadge && tabLabels[tabName]) {
@@ -2991,8 +2991,32 @@ async function submitResetPasswordByPin(e) {
 
 function applyUserPermissionsUI() {
   const roleBadge = document.getElementById('activeUserRoleText');
-  if (roleBadge && currentUser) {
-    roleBadge.textContent = `${currentUser.displayName}`;
+  const sidebarFullName = document.getElementById('sidebarUserFullName');
+  const sidebarRoleText = document.getElementById('sidebarUserRoleText');
+  const activeUserBadge = document.getElementById('activeUserBadge');
+
+  const shortRoleMap = {
+    executive: 'ผู้บริหาร',
+    admin: 'แอดมิน',
+    production_qc: 'ผลิต/QC',
+    technician: 'ช่างซ่อม',
+    driver: 'คนขับรถ'
+  };
+
+  if (currentUser) {
+    const shortText = shortRoleMap[currentUser.role] || (currentUser.roleName ? currentUser.roleName.split(' ')[0] : 'ผู้ใช้');
+    if (roleBadge) {
+      roleBadge.textContent = shortText;
+    }
+    if (activeUserBadge) {
+      activeUserBadge.title = `${currentUser.displayName || ''} (${currentUser.roleName || shortText}) - คลิกเพื่อดูรายละเอียด`;
+    }
+    if (sidebarFullName) {
+      sidebarFullName.textContent = currentUser.displayName || currentUser.username;
+    }
+    if (sidebarRoleText) {
+      sidebarRoleText.textContent = currentUser.roleName || shortText;
+    }
   }
   const allTabs = ['dashboard', 'customers', 'orders', 'tms', 'production', 'cmms', 'inventory', 'costing', 'employees', 'assets', 'security'];
   const isExecutive = currentUser?.role === 'executive' || currentUser?.username === 'owner_inthara';

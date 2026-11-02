@@ -423,64 +423,74 @@
       </div>
     </div>
 
-    <!-- 3. Sidebar Footer: Theme Mode + User -->
-    <div class="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 flex items-center justify-between text-xs">
-      <div class="flex items-center bg-slate-200 dark:bg-slate-800 rounded-lg p-0.5 text-xs">
-        <button type="button" id="btnThemeLightSidebar" onclick="setThemeMode('light')" class="px-2.5 py-1 rounded-md font-semibold text-slate-950 bg-amber-400">☀️ Light</button>
-        <button type="button" id="btnThemeDarkSidebar" onclick="setThemeMode('dark')" class="px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white">🌙 Dark</button>
+    <!-- 3. Sidebar Footer: User Profile + Theme Mode -->
+    <div class="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/90 space-y-2.5 text-xs">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 flex items-center justify-center font-bold text-sm shrink-0">
+            👤
+          </div>
+          <div class="min-w-0">
+            <p id="sidebarUserFullName" class="font-bold text-slate-800 dark:text-white text-xs truncate">นางมัณฑนา โนราช</p>
+            <p id="sidebarUserRoleText" class="text-[10px] text-slate-500 dark:text-slate-400 truncate">ผู้บริหารสูงสุด</p>
+          </div>
+        </div>
+        <button onclick="logoutAndShowLoginGate(); toggleSidebar(false);" title="ออกจากระบบ" class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 px-2 py-1 rounded-lg transition flex items-center gap-1 shrink-0">
+          <span>🚪</span> <span>ออก</span>
+        </button>
       </div>
-      <button onclick="logoutAndShowLoginGate(); toggleSidebar(false);" class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
-        <span>🚪</span> <span>ออกจากระบบ</span>
-      </button>
+
+      <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800">
+        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">ธีมสี</span>
+        <div class="flex items-center bg-slate-200 dark:bg-slate-800 rounded-lg p-0.5 text-xs">
+          <button type="button" id="btnThemeLightSidebar" onclick="setThemeMode('light')" class="px-2.5 py-1 rounded-md font-semibold text-slate-950 bg-amber-400">☀️ Light</button>
+          <button type="button" id="btnThemeDarkSidebar" onclick="setThemeMode('dark')" class="px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white">🌙 Dark</button>
+        </div>
+      </div>
     </div>
   </aside>
 
-  <!-- Top Header: Ultra-Clean, Minimalist & Clutter-Free -->
+  <!-- Top Header: Ultra-Clean, Minimalist & Clutter-Free (เฉพาะแถบเมนูที่จำเป็น) -->
   <header class="bg-white/95 dark:bg-slate-950/95 text-slate-800 dark:text-white shadow-xs sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-3">
+    <div class="max-w-7xl mx-auto px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-2">
       <!-- Left: Slide Menu Trigger Button + Brand -->
-      <div class="flex items-center gap-2.5 min-w-0">
-        <button onclick="toggleSidebar(true)" title="เปิดเมนูนำทาง (Slide Menu)" class="h-8 px-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0">
-          <span class="text-sm">☰</span> <span class="font-medium">เมนู</span>
+      <div class="flex items-center gap-2 min-w-0">
+        <button onclick="toggleSidebar(true)" title="เปิดเมนูนำทาง (Slide Menu)" class="h-8 px-2 sm:px-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs active:scale-95 transition shrink-0">
+          <span class="text-sm">☰</span> <span class="font-medium hidden xs:inline">เมนู</span>
         </button>
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="text-lg shrink-0">💧</span>
-          <div class="min-w-0">
-            <h1 class="text-sm sm:text-base font-black tracking-wide font-mono text-slate-900 dark:text-white truncate">
-              INTHARA ERP
-            </h1>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block truncate leading-none">
-              น้ำดื่มอินธารา อ.ท่าปลา
-            </p>
-          </div>
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="text-base shrink-0">💧</span>
+          <span class="text-xs sm:text-sm font-black tracking-wide font-mono text-slate-900 dark:text-white truncate">
+            INTHARA
+          </span>
         </div>
       </div>
 
-      <!-- Center: Current Active Module Badge (Clear & Prominent) -->
-      <div class="flex items-center">
-        <button onclick="toggleSidebar(true)" title="คลิกเพื่อสลับเมนู" class="bg-slate-100 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 px-3 py-1 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1.5 shadow-2xs transition">
-          <span id="headerActiveTabBadge">📊 แดชบอร์ดภาพรวม</span>
-          <span class="text-[10px] text-slate-400">▾</span>
+      <!-- Center: Current Active Module Badge (Click to open menu) -->
+      <div class="flex items-center min-w-0">
+        <button onclick="toggleSidebar(true)" title="คลิกเพื่อสลับเมนู" class="bg-slate-100 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1 shadow-2xs transition truncate">
+          <span id="headerActiveTabBadge" class="truncate">📊 แดชบอร์ด</span>
+          <span class="text-[10px] text-slate-400 shrink-0">▾</span>
         </button>
       </div>
 
-      <!-- Right: Compact Theme Switcher & User Profile Badge -->
-      <div class="flex items-center gap-2 shrink-0">
+      <!-- Right: Necessary Controls Only (Theme Toggle & Short User Badge) -->
+      <div class="flex items-center gap-1.5 shrink-0">
         <!-- Theme Toggle -->
-        <div class="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 text-[11px]">
-          <button type="button" id="btnThemeLight" onclick="setThemeMode('light')" class="h-6 px-2 rounded-md font-semibold transition flex items-center gap-1 bg-amber-400 text-slate-950 shadow-xs">
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 text-xs">
+          <button type="button" id="btnThemeLight" onclick="setThemeMode('light')" title="โหมดสว่าง" class="h-6 w-6 rounded-md font-semibold transition flex items-center justify-center bg-amber-400 text-slate-950 shadow-xs">
             ☀️
           </button>
-          <button type="button" id="btnThemeDark" onclick="setThemeMode('dark')" class="h-6 px-2 rounded-md font-semibold transition flex items-center gap-1 text-slate-400 hover:text-white">
+          <button type="button" id="btnThemeDark" onclick="setThemeMode('dark')" title="โหมดมืด" class="h-6 w-6 rounded-md font-semibold transition flex items-center justify-center text-slate-400 hover:text-white">
             🌙
           </button>
         </div>
 
-        <!-- User Role Badge -->
-        <div id="activeUserBadge" class="h-7 text-[11px] bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 px-2.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
-          <span class="text-sky-500">🛡️</span>
-          <span id="activeUserRoleText" class="font-medium truncate max-w-[80px] sm:max-w-[140px]">ผู้บริหาร</span>
-        </div>
+        <!-- Short User Badge (Clickable to open profile/drawer) -->
+        <button type="button" onclick="toggleSidebar(true)" id="activeUserBadge" title="ผู้ใช้ปัจจุบัน (คลิกเพื่อดูรายละเอียด)" class="h-7 text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-2 rounded-lg flex items-center gap-1 transition">
+          <span class="text-xs">👤</span>
+          <span id="activeUserRoleText" class="font-semibold text-[10px] sm:text-[11px]">ผู้บริหาร</span>
+        </button>
       </div>
     </div>
   </header>
