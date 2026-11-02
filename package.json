@@ -1,0 +1,17 @@
+{
+  "name": "inthara-smart-water-erp",
+  "version": "1.0.0",
+  "description": "ระบบบริหารจัดการโรงงานผลิตน้ำดื่มอินธารา (Inthara Smart Water ERP & TMS GPS Route Optimization)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "xlsx": "^0.18.5"
+  }
+}
