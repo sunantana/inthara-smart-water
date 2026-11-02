@@ -83,6 +83,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+function toggleMobileMenu(show) {
+  const modal = document.getElementById('mobileMenuModal');
+  if (!modal) return;
+  if (show) {
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+  }
+}
+
 function switchTab(tabName) {
   const allTabs = ['dashboard', 'customers', 'orders', 'tms', 'production', 'cmms', 'inventory', 'costing', 'employees', 'assets', 'security'];
   const isExecutive = currentUser?.role === 'executive' || currentUser?.username === 'owner_inthara';
@@ -99,6 +109,9 @@ function switchTab(tabName) {
     if (t === tabName) {
       viewEl.classList.remove('hidden');
       btnEl.classList.add('active');
+      try {
+        btnEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      } catch (e) {}
     } else {
       viewEl.classList.add('hidden');
       btnEl.classList.remove('active');

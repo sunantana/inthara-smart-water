@@ -130,6 +130,13 @@
       border-radius: 0.75rem;
       z-index: 10;
     }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
     .nav-tab {
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       white-space: nowrap;
@@ -294,46 +301,167 @@
     </div>
   </div>
 
-  <!-- Top Header: Modern Gradient & Crystal Clear Branding -->
+  <!-- Mobile Full Menu Drawer (สไลด์ขึ้นมาเมื่อกดปุ่ม ☰ เมนู บนมือถือ) -->
+  <div id="mobileMenuModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] hidden flex flex-col justify-end sm:justify-center p-0 sm:p-4 transition-all">
+    <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl p-4 sm:p-5 w-full max-w-lg mx-auto shadow-2xl max-h-[90vh] flex flex-col space-y-3.5 overflow-hidden">
+      <!-- Drawer Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-400 to-teal-400 flex items-center justify-center text-white font-black text-sm">
+            💧
+          </div>
+          <div>
+            <h3 class="font-black text-white text-sm sm:text-base">เมนูระบบน้ำดื่มอินธารา</h3>
+            <p class="text-[10px] text-slate-400">แตะเพื่อเลือกไปยังหน้าที่ต้องการ</p>
+          </div>
+        </div>
+        <button onclick="toggleMobileMenu(false)" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm">
+          ✕
+        </button>
+      </div>
+
+      <!-- Quick Shortcuts inside Drawer (Dark/Light, Customer Portal, Drive Sync) -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <a href="/customer" target="_blank" class="bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 p-2.5 rounded-xl flex items-center gap-2 font-medium">
+          <span>🔗</span> <span>ฟอร์มสั่งน้ำลูกค้า</span>
+        </a>
+        <button onclick="syncCloudNow(); toggleMobileMenu(false);" class="bg-sky-500/15 border border-sky-500/30 text-sky-300 p-2.5 rounded-xl flex items-center gap-2 font-medium text-left">
+          <span>☁️</span> <span>ซิงค์ข้อมูลคลาวด์</span>
+        </button>
+      </div>
+
+      <!-- 11 Modules Grid in Drawer (Large touch targets, zero overlapping) -->
+      <div class="grid grid-cols-2 gap-2 overflow-y-auto pr-1 py-1 text-xs">
+        <button onclick="switchTab('dashboard'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">📊</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">แดชบอร์ด</div>
+            <div class="text-[10px] text-slate-400 truncate">ภาพรวมธุรกิจ</div>
+          </div>
+        </button>
+        <button onclick="switchTab('customers'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">👥</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">ทะเบียนลูกค้า</div>
+            <div class="text-[10px] text-slate-400 truncate">ข้อมูล & ถังค้าง</div>
+          </div>
+        </button>
+        <button onclick="switchTab('orders'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">🛒</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">สั่งน้ำดื่ม</div>
+            <div class="text-[10px] text-slate-400 truncate">เปิดบิล & จัดส่ง</div>
+          </div>
+        </button>
+        <button onclick="switchTab('tms'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">🚚</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">ขนส่ง / GPS</div>
+            <div class="text-[10px] text-slate-400 truncate">สายส่ง & เช็คอิน</div>
+          </div>
+        </button>
+        <button onclick="switchTab('production'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">🏭</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">ผลิต & QC</div>
+            <div class="text-[10px] text-slate-400 truncate">e-GMP คุณภาพน้ำ</div>
+          </div>
+        </button>
+        <button onclick="switchTab('cmms'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">🔧</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">ซ่อมบำรุง</div>
+            <div class="text-[10px] text-slate-400 truncate">16 เครื่องจักร PM</div>
+          </div>
+        </button>
+        <button onclick="switchTab('inventory'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">🔄</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">สต็อก / ถัง</div>
+            <div class="text-[10px] text-slate-400 truncate">คลัง & บรรจุภัณฑ์</div>
+          </div>
+        </button>
+        <button onclick="switchTab('costing'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">💰</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">ค่าใช้จ่าย</div>
+            <div class="text-[10px] text-slate-400 truncate">ต้นทุน & บัญชี</div>
+          </div>
+        </button>
+        <button onclick="switchTab('employees'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">👔</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">พนักงาน</div>
+            <div class="text-[10px] text-slate-400 truncate">บุคลากร & เอกสาร</div>
+          </div>
+        </button>
+        <button onclick="switchTab('assets'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition">
+          <span class="text-xl">🏢</span>
+          <div class="min-w-0">
+            <div class="font-bold text-white text-xs truncate">สินทรัพย์</div>
+            <div class="text-[10px] text-slate-400 truncate">รถส่ง & เครื่องจักร</div>
+          </div>
+        </button>
+        <button onclick="switchTab('security'); toggleMobileMenu(false);" class="bg-slate-800/80 hover:bg-sky-600/30 border border-slate-700/80 p-2.5 rounded-xl flex items-center gap-2 text-left text-slate-200 transition col-span-2">
+          <span class="text-xl">🛡️</span>
+          <div class="min-w-0">
+            <div class="font-bold text-amber-300 text-xs">ความปลอดภัย & รหัสผ่าน</div>
+            <div class="text-[10px] text-slate-400">สิทธิ์ผู้ใช้ & ซิงค์ Excel</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Drawer Footer: Dark/Light Mode + Close -->
+      <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+        <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 text-xs">
+          <button type="button" onclick="setThemeMode('dark'); toggleMobileMenu(false);" class="px-2.5 py-1 rounded-md font-semibold text-white bg-sky-600">🌙 Dark</button>
+          <button type="button" onclick="setThemeMode('light'); toggleMobileMenu(false);" class="px-2.5 py-1 rounded-md font-semibold text-slate-400 hover:text-white">☀️ Light</button>
+        </div>
+        <button onclick="toggleMobileMenu(false)" class="text-xs bg-slate-800 text-slate-300 hover:text-white px-4 py-1.5 rounded-lg font-semibold transition">
+          ปิดเมนู ✕
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Header: Modern Gradient & Mobile-Responsive Branding -->
   <header class="bg-gradient-to-r from-slate-950 via-slate-900 to-sky-950 text-white shadow-lg sticky top-0 z-50 border-b border-sky-800/40 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
       <!-- Title & Branding -->
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-400 via-teal-400 to-emerald-400 flex items-center justify-center text-white font-black text-lg shadow-md shadow-sky-500/25">
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-sky-400 via-teal-400 to-emerald-400 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shadow-sky-500/25 shrink-0">
           💧
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-base md:text-lg font-black tracking-wider bg-gradient-to-r from-white via-sky-100 to-teal-200 bg-clip-text text-transparent font-mono">
-              INTHARA SMART WATER ERP
-            </h1>
-          </div>
-          <p class="text-[11px] text-sky-200/70 font-normal">
+        <div class="min-w-0">
+          <h1 class="text-sm sm:text-base md:text-lg font-black tracking-wider bg-gradient-to-r from-white via-sky-100 to-teal-200 bg-clip-text text-transparent font-mono truncate">
+            INTHARA SMART WATER ERP
+          </h1>
+          <p class="text-[10px] sm:text-[11px] text-sky-200/70 font-normal hidden sm:block truncate">
             น้ำดื่มอินธารา • 121 หมู่ 4 ต.จริม อ.ท่าปลา จ.อุตรดิตถ์
           </p>
         </div>
       </div>
 
-      <!-- Quick Action Controls & Badges (Refined, Compact, Harmonious) -->
-      <div class="flex flex-wrap items-center gap-1.5">
-        <!-- 1. Cloud Storage Status -->
-        <button onclick="openCloudInspectorModal()" id="dbStatusBadge" title="ตรวจสอบสถานะไฟล์บนคลาวด์" class="h-7 text-[11px] bg-slate-800/80 hover:bg-slate-700/80 text-sky-300 border border-slate-700/70 px-2.5 rounded-lg flex items-center gap-1.5 transition shadow-sm">
+      <!-- Quick Action Controls & Badges (Clean single row on mobile) -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- 1. Cloud Storage Status (Desktop/Tablet) -->
+        <button onclick="openCloudInspectorModal()" id="dbStatusBadge" title="ตรวจสอบสถานะไฟล์บนคลาวด์" class="hidden md:flex h-7 text-[11px] bg-slate-800/80 hover:bg-slate-700/80 text-sky-300 border border-slate-700/70 px-2.5 rounded-lg items-center gap-1.5 transition shadow-sm">
           <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span id="cloudStatusText" class="font-medium">☁️ ไฟล์คลาวด์</span>
         </button>
 
         <!-- 2. Cloud Sync Button -->
-        <button onclick="syncCloudNow()" id="btnCloudSync" title="กดเพื่อซิงค์ข้อมูลขึ้น Google Drive ทันที" class="h-7 text-[11px] bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-medium px-2.5 rounded-lg shadow-sm transition flex items-center gap-1">
-          <span>☁️</span> <span>ซิงค์ไดรฟ์</span>
+        <button onclick="syncCloudNow()" id="btnCloudSync" title="กดเพื่อซิงค์ข้อมูลขึ้น Google Drive ทันที" class="h-7 text-[11px] bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-medium px-2 sm:px-2.5 rounded-lg shadow-sm transition flex items-center gap-1">
+          <span>☁️</span> <span class="hidden sm:inline">ซิงค์ไดรฟ์</span>
         </button>
 
-        <!-- 3. Customer Portal Link -->
-        <a href="/customer" target="_blank" title="เปิดหน้าสั่งน้ำสำหรับลูกค้าภายนอก" class="h-7 text-[11px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-medium px-2.5 rounded-lg shadow-sm transition flex items-center gap-1">
+        <!-- 3. Customer Portal Link (Desktop/Tablet) -->
+        <a href="/customer" target="_blank" title="เปิดหน้าสั่งน้ำสำหรับลูกค้าภายนอก" class="hidden sm:flex h-7 text-[11px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-medium px-2.5 rounded-lg shadow-sm transition items-center gap-1">
           <span>🔗</span> <span>ฟอร์มลูกค้า</span>
         </a>
 
-        <!-- 4. Dark / Light Mode Selector -->
-        <div class="h-7 flex items-center bg-slate-800/80 border border-slate-700/70 rounded-lg p-0.5 text-[11px]">
+        <!-- 4. Dark / Light Mode Selector (Desktop) -->
+        <div class="hidden lg:flex h-7 items-center bg-slate-800/80 border border-slate-700/70 rounded-lg p-0.5 text-[11px]">
           <button type="button" id="btnThemeDark" onclick="setThemeMode('dark')" class="h-full px-2 rounded-md font-semibold transition flex items-center gap-1 bg-sky-600 text-white shadow-xs text-[11px]">
             🌙 Dark
           </button>
@@ -342,51 +470,56 @@
           </button>
         </div>
 
-        <!-- 5. Active User & Logout Gate (Far Right) -->
-        <div id="activeUserBadge" class="h-7 text-[11px] bg-slate-800/90 text-slate-200 border border-slate-700/80 pl-2.5 pr-1 rounded-lg flex items-center gap-2 shadow-sm">
+        <!-- 5. Active User & Logout Gate -->
+        <div id="activeUserBadge" class="h-7 text-[11px] bg-slate-800/90 text-slate-200 border border-slate-700/80 pl-2 pr-1 rounded-lg flex items-center gap-1.5 shadow-sm">
           <span class="text-sky-400">🛡️</span>
-          <span id="activeUserRoleText" class="font-medium text-slate-200 truncate max-w-[160px] sm:max-w-[220px]">ผู้บริหารสูงสุด</span>
+          <span id="activeUserRoleText" class="font-medium text-slate-200 truncate max-w-[70px] sm:max-w-[140px]">ผู้บริหาร</span>
           <button onclick="logoutAndShowLoginGate()" title="สลับบัญชีผู้ใช้ หรือออกจากระบบ" class="h-5 px-1.5 text-[10px] bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 rounded font-semibold transition">
-            สลับ / ออก
+            ออก
           </button>
         </div>
+
+        <!-- 6. Mobile All-Menus Drawer Button (Visible on Mobile/Tablet) -->
+        <button onclick="toggleMobileMenu(true)" title="เปิดดูเมนูทั้งหมด" class="lg:hidden h-7 px-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-sm active:scale-95 transition">
+          <span>☰</span> <span>เมนู</span>
+        </button>
       </div>
     </div>
 
-    <!-- Navigation Bar: Beautiful Glassmorphic Menu Bar with 11 Tabs -->
-    <div class="bg-slate-900/90 backdrop-blur-md border-t border-slate-800">
-      <div id="mainNavGrid" class="max-w-7xl mx-auto px-2 py-1.5 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-1.5 w-full">
-        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active w-full px-2 py-1.5 rounded-xl text-xs font-medium text-center justify-center transition flex items-center gap-1.5">
+    <!-- Navigation Bar: Swipeable Horizontal Strip on Mobile, 11-Grid on Large Screens (No text overlap) -->
+    <div class="bg-slate-900/95 backdrop-blur-md border-t border-slate-800/90 relative">
+      <div id="mainNavGrid" class="max-w-7xl mx-auto px-2 py-1.5 flex items-center overflow-x-auto no-scrollbar scroll-smooth gap-1.5 lg:grid lg:grid-cols-11 w-full">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>📊</span> <span>แดชบอร์ด</span>
         </button>
-        <button onclick="switchTab('customers')" id="tab-customers" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('customers')" id="tab-customers" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>👥</span> <span>ลูกค้า</span>
         </button>
-        <button onclick="switchTab('orders')" id="tab-orders" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('orders')" id="tab-orders" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🛒</span> <span>สั่งน้ำดื่ม</span>
         </button>
-        <button onclick="switchTab('tms')" id="tab-tms" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('tms')" id="tab-tms" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🚚</span> <span>ขนส่ง/GPS</span>
         </button>
-        <button onclick="switchTab('production')" id="tab-production" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('production')" id="tab-production" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🏭</span> <span>ผลิต & QC</span>
         </button>
-        <button onclick="switchTab('cmms')" id="tab-cmms" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('cmms')" id="tab-cmms" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🔧</span> <span>ซ่อมบำรุง</span>
         </button>
-        <button onclick="switchTab('inventory')" id="tab-inventory" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('inventory')" id="tab-inventory" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🔄</span> <span>สต็อก/ถัง</span>
         </button>
-        <button onclick="switchTab('costing')" id="tab-costing" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('costing')" id="tab-costing" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>💰</span> <span>ค่าใช้จ่าย</span>
         </button>
-        <button onclick="switchTab('employees')" id="tab-employees" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('employees')" id="tab-employees" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>👔</span> <span>พนักงาน</span>
         </button>
-        <button onclick="switchTab('assets')" id="tab-assets" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('assets')" id="tab-assets" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-sky-300 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🏢</span> <span>สินทรัพย์</span>
         </button>
-        <button onclick="switchTab('security')" id="tab-security" class="nav-tab w-full px-2 py-1.5 rounded-xl text-xs font-medium text-amber-300 hover:bg-slate-800 hover:text-amber-200 text-center justify-center transition flex items-center gap-1.5">
+        <button onclick="switchTab('security')" id="tab-security" class="nav-tab shrink-0 w-auto lg:w-full px-3 py-1.5 rounded-xl text-xs font-medium text-amber-300 hover:bg-slate-800 hover:text-amber-200 text-center justify-center transition flex items-center gap-1.5 whitespace-nowrap">
           <span>🛡️</span> <span>รหัส/สิทธิ์</span>
         </button>
       </div>
