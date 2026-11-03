@@ -27,11 +27,11 @@ if errorlevel 1 (
   timeout /t 2 >nul
 )
 
-if "%choice%"=="1" start "" "http://localhost:3080/?role=executive" & exit
-if "%choice%"=="2" start "" "http://localhost:3080/?role=admin" & exit
-if "%choice%"=="3" start "" "http://localhost:3080/?role=production_qc" & exit
-if "%choice%"=="4" start "" "http://localhost:3080/?role=technician" & exit
-if "%choice%"=="5" start "" "http://localhost:3080/?role=driver" & exit
+if "%choice%"=="1" start "" "http://localhost:3080/" & exit
+if "%choice%"=="2" start "" "http://localhost:3080/" & exit
+if "%choice%"=="3" start "" "http://localhost:3080/" & exit
+if "%choice%"=="4" start "" "http://localhost:3080/" & exit
+if "%choice%"=="5" start "" "http://localhost:3080/" & exit
 
 start "" "http://localhost:3080/portal.html"
 exit

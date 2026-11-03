@@ -44,6 +44,30 @@ let currentUser = {
 let authToken = localStorage.getItem('inthara_auth_token') || null;
 let currentThemeMode = localStorage.getItem('inthara_theme_mode') || 'light';
 
+// ==========================================
+// API AUTH INTERCEPTOR
+// ทุกคำขอ /api/* (ยกเว้น login / PIN reset / portal) แนบ Bearer token อัตโนมัติ
+// ถ้าเซิร์ฟเวอร์ตอบ 401 (session หมดอายุ) → กลับไปหน้าเข้าสู่ระบบ
+// ==========================================
+const PUBLIC_API_PATHS = ['/api/auth/login', '/api/auth/reset-password-by-pin', '/api/customer-portal/'];
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async function (input, init) {
+  const url = typeof input === 'string' ? input : (input && input.url) || '';
+  const isApi = url.indexOf('/api/') !== -1;
+  const isPublicApi = PUBLIC_API_PATHS.some((p) => url.indexOf(p) !== -1);
+  let options = init || {};
+  if (isApi && !isPublicApi && authToken) {
+    const headers = new Headers(options.headers || (input && input.headers) || undefined);
+    headers.set('Authorization', 'Bearer ' + authToken);
+    options = Object.assign({}, options, { headers });
+  }
+  const res = await nativeFetch(input, options);
+  if (isApi && !isPublicApi && res.status === 401) {
+    try { logoutAndShowLoginGate(); } catch (e) { console.warn('login gate error:', e); }
+  }
+  return res;
+};
+
 function setThemeMode(mode) {
   currentThemeMode = mode === 'dark' ? 'dark' : 'light';
   localStorage.setItem('inthara_theme_mode', currentThemeMode);
@@ -113,6 +137,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof custPickerMap !== 'undefined' && custPickerMap) setTimeout(() => custPickerMap.invalidateSize(), 150);
   });
   
+  // ต้องเข้าสู่ระบบก่อนเสมอ: ไม่มี token = แสดงหน้าเข้าสู่ระบบและห้ามดึงข้อมูล
+  if (!authToken) {
+    logoutAndShowLoginGate();
+    return;
+  }
+
   // Critical: Always fetch and render all ERP data
   try {
     await fetchAllData();
@@ -122,11 +152,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   try { await fetchSecurityAudit(); } catch (e) { console.warn('fetchSecurityAudit error:', e); }
 
-  const params = new URLSearchParams(window.location.search);
-  const roleParam = params.get('role');
-  if (roleParam) {
-    applyQuickRoleMode(roleParam);
-  }
 });
 
 function switchTab(tabName) {
@@ -216,7 +241,14 @@ function switchTab(tabName) {
 async function fetchAllData() {
   try {
     const res = await fetch('/api/data?t=' + Date.now());
-    appData = await res.json();
+    if (res.status === 401) {
+      // ไม่มีสิทธิ์: อย่าเอา error object ไปทับ appData (จะทำให้หน้าจอพัง)
+      logoutAndShowLoginGate();
+      return;
+    }
+    const data = await res.json();
+    if (!data || data.ok === false) return;
+    appData = data;
     renderAllViews();
   } catch (err) {
     console.error('Failed to load ERP data:', err);
@@ -2881,21 +2913,31 @@ function logoutAndShowLoginGate() {
   if (gate) gate.classList.remove('hidden');
 }
 
+// ดาวน์โหลดไฟล์จาก API ที่ต้องมี token (ลิงก์ <a href> แนบ header ไม่ได้)
+async function downloadWithAuth(url, filename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      alert('ไม่สามารถดาวน์โหลดไฟล์ได้ (ต้องเข้าสู่ระบบและใช้สิทธิ์ที่เหมาะสม)');
+      return;
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename || 'export.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+  } catch (e) {
+    alert('ดาวน์โหลดไม่สำเร็จ: ' + e.message);
+  }
+}
+
 function hideLoginGate() {
   const gate = document.getElementById('loginGateScreen');
   if (gate) gate.classList.add('hidden');
-}
-
-function fillLoginPreset(username, fallbackPassword) {
-  const matched = cachedExcelUsers.find(u => u.username === username);
-  const actualPassword = matched?.passwordPlain || fallbackPassword;
-  const loginUserEl = document.getElementById('loginUsername');
-  const loginPassEl = document.getElementById('loginPassword');
-  const resetUserEl = document.getElementById('resetUsername');
-  if (loginUserEl) loginUserEl.value = username;
-  if (loginPassEl) loginPassEl.value = actualPassword;
-  if (resetUserEl) resetUserEl.value = username;
-  toggleResetPasswordPanel(false);
 }
 
 function toggleResetPasswordPanel(showReset) {
@@ -2942,6 +2984,8 @@ async function submitLogin(e) {
     currentUser = out.user;
     localStorage.setItem('inthara_auth_token', authToken);
     hideLoginGate();
+    // เพิ่งล็อกอินสำเร็จ → ดึงข้อมูล ERP ชุดแรกทันที (ตอนยังไม่ล็อกอินระบบไม่ยอมให้ดึง)
+    await fetchAllData();
     applyUserPermissionsUI();
     renderDashboard();
     await fetchSecurityAudit();
@@ -3058,35 +3102,6 @@ function applyUserPermissionsUI() {
   }
   // Always open role-specific Dashboard after login
   switchTab('dashboard');
-}
-
-async function applyQuickRoleMode(roleKey) {
-  const presetMap = {
-    executive: ['owner_inthara', 'Inthara@Owner2026!'],
-    admin: ['admin_office', 'Inthara@Admin2026!'],
-    production_qc: ['qc_production', 'Inthara@QC2026!'],
-    technician: ['tech_cmms', 'Inthara@Tech2026!'],
-    driver: ['driver_gps', 'Inthara@Driver2026!']
-  };
-  const preset = presetMap[roleKey];
-  if (!preset) return;
-  const [username, fallbackPassword] = preset;
-  const matched = cachedExcelUsers.find(u => u.username === username);
-  const password = matched?.passwordPlain || fallbackPassword;
-  fillLoginPreset(username, password);
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  const out = await res.json();
-  if (out.ok) {
-    authToken = out.token;
-    currentUser = out.user;
-    hideLoginGate();
-    applyUserPermissionsUI();
-    renderDashboard();
-  }
 }
 
 async function fetchSecurityAudit() {

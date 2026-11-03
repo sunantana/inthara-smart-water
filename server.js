@@ -19,6 +19,9 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 3080;
+// อยู่หลัง reverse proxy (Render / Cloudflare / preview) → ใช้ IP จริงจาก X-Forwarded-For
+// ไม่อย่างนั้น rate limit จะกลายเป็นของทั้งระบบแทนที่จะเป็นรายผู้ใช้
+app.set('trust proxy', 1);
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -61,10 +64,54 @@ let cloudSyncState = {
   sheetFileId: GDRIVE_SHEET_FILE_ID
 };
 
-app.use(cors());
+// CORS: ระบบนี้เป็น same-origin app (หน้าเว็บกับ API อยู่โดเมนเดียวกัน)
+// เดิมใช้ app.use(cors()) = Access-Control-Allow-Origin: * ทำให้เว็บอื่นใดก็ได้
+// อ่านข้อมูล ERP ข้ามโดเมนผ่านเบราว์เซอร์ของผู้ใช้ได้ → จำกัดด้วย allowlist แทน
+// (ถ้ามีโดเมนภายนอกจริง ให้ตั้ง CORS_ORIGINS=https://a.com,https://b.com)
+const corsAllowlist = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: corsAllowlist.length ? corsAllowlist : false }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ==========================================
+// GLOBAL API AUTH: ทุก /api/* ต้องมี token ยกเว้นรายการด้านล่าง
+// (เดิมมีเพียงไม่กี่ endpoint ที่ตรวจ token → ข้อมูลทั้งระบบเปิดอ่านได้ฟรี)
+// ==========================================
+const PUBLIC_API_PATTERNS = [
+  /^\/api\/auth\/login$/,
+  /^\/api\/auth\/reset-password-by-pin$/,
+  /^\/api\/customer-portal\//
+];
+
+function requireStaffSession(req, res, next) {
+  if (!req.path.startsWith('/api/')) return next();
+  if (PUBLIC_API_PATTERNS.some((re) => re.test(req.path))) return next();
+  const user = getAuthUser(req);
+  if (!user || !user.role) {
+    return res.status(401).json({
+      ok: false,
+      needLogin: true,
+      error: 'กรุณาเข้าสู่ระบบก่อนใช้งาน (Session หมดอายุหรือยังไม่ได้เข้าสู่ระบบ)'
+    });
+  }
+  req.staffUser = user;
+  next();
+}
+app.use(requireStaffSession);
+
+// ตรวจสิทธิ์ระดับผู้บริหาร/แอดมินสำหรับ endpoint ที่อ่อนไหว
+function requireRole(req, roles) {
+  const u = req.staffUser || getAuthUser(req);
+  return u && roles.includes(u.role) ? u : null;
+}
+function denyRole(res) {
+  return res.status(403).json({ ok: false, error: 'ต้องใช้สิทธิ์ผู้บริหารเท่านั้น' });
+}
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -537,6 +584,10 @@ function getAuthUser(req) {
 }
 
 app.post('/api/auth/login', (req, res) => {
+  // Rate limit ต่อ IP: กันการสุ่มรหัสผ่านแบบกระจาย
+  if (rateLimited(req, 'stafflogin', 20, 15 * 60 * 1000)) {
+    return res.status(429).json({ ok: false, error: 'พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่' });
+  }
   const { username, password } = req.body;
   const secData = loadSecurityDB();
   const user = secData.users.find(u => u.username === username);
@@ -592,6 +643,10 @@ app.post('/api/auth/login', (req, res) => {
 
 // Reset / Change Password using 4-digit Recovery PIN (when user forgets password or wants to change password)
 app.post('/api/auth/reset-password-by-pin', (req, res) => {
+  // PIN กู้รหัสผ่านเป็นเลข 4 หลัก → ต้องจำกัดจำนวนครั้งต่อ IP ไม่อย่างนั้นเดาได้หมด
+  if (rateLimited(req, 'pinreset', 5, 15 * 60 * 1000)) {
+    return res.status(429).json({ ok: false, error: 'พยายามใช้รหัส PIN บ่อยเกินไป กรุณารอ 15 นาที' });
+  }
   const { username, pin, newPassword } = req.body;
   const secData = loadSecurityDB();
   const user = secData.users.find(u => u.username === String(username || '').trim());
@@ -626,6 +681,9 @@ app.post('/api/auth/reset-password-by-pin', (req, res) => {
 });
 
 app.get('/api/security/audit', (req, res) => {
+  // endpoint นี้คืนรหัสผ่านจริง (passwordPlain) และ PIN → ผู้บริหารเท่านั้น
+  const actor = requireRole(req, ['executive']);
+  if (!actor) return denyRole(res);
   const secData = loadSecurityDB();
   res.json({
     ok: true,
@@ -650,13 +708,33 @@ app.get('/api/security/audit', (req, res) => {
 
 // Update user password/PIN/role/displayName and sync to Excel + Google Drive
 app.post('/api/security/update-users-excel', (req, res) => {
+  // แก้รหัสผ่าน/PIN ของทุกบัญชี = ผู้บริหารเท่านั้น
+  const actor = requireRole(req, ['executive']);
+  if (!actor) return denyRole(res);
   const { users } = req.body;
   if (!Array.isArray(users)) {
     return res.status(400).json({ ok: false, error: 'รูปแบบข้อมูลไม่ถูกต้อง' });
   }
   const secData = loadSecurityDB();
   secData.users = users.map((u, idx) => {
-    const pass = String(u.passwordPlain || 'Inthara@2026!').trim();
+    const pass = String(u.passwordPlain || '').trim();
+    if (!pass) {
+      // ไม่ส่งรหัสผ่านมา → คงค่าเดิมไว้ (เดิมบังคับเป็นรหัสผ่านสำรอง ทำให้รหัสผู้ใช้ถูกรีเซ็ต)
+      const existing = secData.users.find((e) => e.username === String(u.username).trim()) || secData.users[idx];
+      if (existing) {
+        return {
+          ...existing,
+          level: Number(u.level || existing.level || (idx + 1)),
+          displayName: String(u.displayName || existing.displayName).trim(),
+          role: ROLE_PERMISSIONS[u.role] ? u.role : 'driver',
+          pin: String(u.pin || existing.pin || '0000').trim(),
+          active: u.active !== false && u.active !== 'NO',
+          dashboardNote: u.dashboardNote || '',
+          failedAttempts: 0,
+          lockUntil: null
+        };
+      }
+    }
     const { salt, hash } = hashPassword(pass);
     return {
       level: Number(u.level || (idx + 1)),
@@ -683,6 +761,8 @@ app.post('/api/security/update-users-excel', (req, res) => {
 
 // Pull edited Excel / Google Sheet from Google Drive and apply new passwords
 app.post('/api/security/pull-excel-drive', (req, res) => {
+  const actor = requireRole(req, ['executive']);
+  if (!actor) return denyRole(res);
   runGdriveCmd(['readonly', 'export', GDRIVE_SHEET_FILE_ID, EXCEL_USER_FILE, '--format', 'xlsx'], (err) => {
     if (err) {
       // Fallback to downloading the .xlsx file directly
@@ -699,6 +779,9 @@ app.post('/api/security/pull-excel-drive', (req, res) => {
 });
 
 app.get('/api/security/download-excel', (req, res) => {
+  // ไฟล์รหัสผ่านทั้งบริษัท → ห้ามดาวน์โหลดโดยไม่เข้าสู่ระบบ
+  const actor = requireRole(req, ['executive']);
+  if (!actor) return denyRole(res);
   loadSecurityDB();
   res.download(EXCEL_USER_FILE, 'Inthara_Users_Passwords.xlsx');
 });
@@ -746,6 +829,8 @@ app.get('/api/data', (req, res) => {
 });
 
 app.post('/api/cloud/sync', (req, res) => {
+  const actor = requireRole(req, ['executive', 'admin']);
+  if (!actor) return denyRole(res);
   cloudSyncState.status = 'syncing';
   runGdriveCmd(['mutate', 'update', GDRIVE_DB_FILE_ID, DB_FILE], (err, stdout, stderr) => {
     if (err) {
@@ -774,6 +859,9 @@ app.get('/api/cloud/files', (req, res) => {
 });
 
 app.post('/api/cloud/pull', (req, res) => {
+  // ดึงไฟล์จากคลาวด์มาทับฐานข้อมูลทั้งระบบ → ผู้บริหาร/แอดมินเท่านั้น
+  const actor = requireRole(req, ['executive', 'admin']);
+  if (!actor) return denyRole(res);
   const tempDownload = path.join(DATA_DIR, 'inthara_db_cloud_pull.json');
   runGdriveCmd(['readonly', 'download', GDRIVE_DB_FILE_ID, '--out', tempDownload], (err, stdout, stderr) => {
     if (err) {
@@ -792,6 +880,9 @@ app.post('/api/cloud/pull', (req, res) => {
 });
 
 app.post('/api/reset', (req, res) => {
+  // เดิมรีเซ็ตฐานข้อมูลทั้งระบบได้โดยไม่ต้องเข้าสู่ระบบ → จำกัดไว้ที่ผู้บริหาร
+  const actor = requireRole(req, ['executive']);
+  if (!actor) return denyRole(res);
   const initial = getInitialData();
   saveDB(initial);
   res.json({ ok: true, data: initial });
