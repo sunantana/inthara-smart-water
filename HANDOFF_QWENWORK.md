@@ -28,6 +28,8 @@
 | `public/portal.html` | ซ่อน Username/Password/PIN ทั้ง 5 กล่อง, ลิงก์ `?role=` → `/` |
 | `Inthara_All_Levels_Secure_Portal.html` | ลบลิงก์ `?role=` 6 จุด (ไฟล์ local ไม่อยู่ใน `public/`) |
 | `เข้าใช้งานระบบ_อินธารา_ครบทุกระดับ.bat` | ลบลิงก์ `?role=` 5 จุด |
+| `.env.example` (ใหม่) | ตัวอย่าง env `AUTH_SECRET` / `CORS_ORIGINS` (ไม่มีค่าจริง) |
+| `.gitignore` | กัน `.env*` ทั้งหมด แต่ยกเว้น `.env.example` |
 | `SECURITY_FIX_REPORT.md` | รายงานฉบับเต็ม (ปัญหา → บรรทัด → คำสั่งตรวจ → งานค้าง) |
 
 **ไม่ได้แตะ:** `data/*.json`, `*.xlsx`, `.gitignore`, `Dockerfile`, `render.yaml`, `public/customer.html`
@@ -61,8 +63,8 @@ PORT=3000 node server.js
 ### P0 — ต้องทำก่อน deploy ขึ้น production
 1. **เปลี่ยนรหัสผ่าน + PIN ทั้ง 5 บัญชี** ที่เคยแสดงใน `portal.html`:
    `owner_inthara`, `admin_office`, `qc_production`, `tech_cmms`, `driver_gps` — รหัสเดิม (`Inthara@...2026!`) และ PIN (`1988/2200/3300/4400/5500`) ถือว่ารั่วแล้ว
-2. **ย้าย JWT secret ไป env**: `data/security_auth.json` เก็บ `secretKey` ที่ใช้เซ็น token (`server.js:583, 634`) → ใช้ `process.env.AUTH_SECRET` และปฏิเสธการ start ถ้าไม่มีค่าใน production
-3. **ตั้ง env บน Render**: `AUTH_SECRET`, `CORS_ORIGINS` (ถ้ามีโดเมนหน้าบ้านจริง), `PORT` (มีอยู่แล้ว)
+2. ✅ **ย้าย JWT secret ไป env — ทำเสร็จแล้ว** (`server.js:31–60, 620, 671`): ใช้ `AUTH_SECRET` เป็นหลัก, production ไม่มี env = ไม่ยอม start, dev ไม่มี env = ใช้ secret เดิมในไฟล์ + warning
+3. **ตั้ง env บน Render (ยังไม่ได้ทำ)**: `AUTH_SECRET` (จำเป็น — ถ้าไม่ตั้ง production จะไม่ start), `CORS_ORIGINS` (ถ้ามีโดเมนหน้าบ้านจริง), `PORT` (มีอยู่แล้ว)
 4. **ทดสอบในเบราว์เซอร์จริง** ตามหัวข้อ 3 ก่อนประกาศว่าเสร็จ
 
 ### P1 — ความปลอดภัยรอบสอง

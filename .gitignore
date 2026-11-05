@@ -1,4 +1,11 @@
 node_modules/
+
+# secrets / environment (ห้าม commit ค่าจริง)
+.env
+.env.local
+.env.*.local
+!.env.example
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

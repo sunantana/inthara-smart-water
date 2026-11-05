@@ -22,6 +22,44 @@ const PORT = process.env.PORT || 3080;
 // อยู่หลัง reverse proxy (Render / Cloudflare / preview) → ใช้ IP จริงจาก X-Forwarded-For
 // ไม่อย่างนั้น rate limit จะกลายเป็นของทั้งระบบแทนที่จะเป็นรายผู้ใช้
 app.set('trust proxy', 1);
+
+// ==========================================
+// JWT SECRET — ใช้เซ็น/ตรวจ token ของพนักงาน
+// ลำดับ: process.env.AUTH_SECRET  >  secretKey ใน data/security_auth.json (โหมด development เท่านั้น)
+// ห้ามใช้ secret จากไฟล์บน production: ใครอ่านไฟล์นั้นได้ = ปลอม token ผู้บริหารได้ทันที
+// ==========================================
+const AUTH_SECRET = String(process.env.AUTH_SECRET || '').trim();
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+if (IS_PRODUCTION && !AUTH_SECRET) {
+  console.error([
+    '',
+    '[FATAL] ไม่ได้ตั้งค่า AUTH_SECRET — เซิร์ฟเวอร์จะไม่เริ่มทำงานในโหมด production',
+    '        เหตุผล: ถ้าเซ็น token ด้วย secret ที่เก็บใน data/security_auth.json',
+    '        ผู้ที่อ่านไฟล์นั้นได้จะปลอม token ผู้บริหารได้ทันที',
+    '        วิธีแก้: ตั้ง env AUTH_SECRET เป็นสตริงสุ่มยาวอย่างน้อย 32 ตัวอักษร',
+    '        สร้างค่า: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"',
+    '        บน Render: Dashboard → Environment → Add Environment Variable',
+    ''
+  ].join('\n'));
+  process.exit(1);
+}
+
+let devSecretWarned = false;
+function getAuthSecret() {
+  if (AUTH_SECRET) return AUTH_SECRET;
+  if (IS_PRODUCTION) {
+    // กันเหนียว: ไม่ควรมาถึงจุดนี้ เพราะถูกปฏิเสธตั้งแต่เริ่ม start แล้ว
+    console.error('[FATAL] ไม่ได้ตั้งค่า AUTH_SECRET ในโหมด production');
+    process.exit(1);
+  }
+  if (!devSecretWarned) {
+    devSecretWarned = true;
+    console.warn('[SECURITY][DEV] ไม่พบ env AUTH_SECRET → ใช้ secretKey จาก data/security_auth.json ชั่วคราว (โหมด development เท่านั้น ห้ามใช้บน production)');
+  }
+  return loadSecurityDB().secretKey;
+}
+
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -579,8 +617,7 @@ function saveDB(data) {
 function getAuthUser(req) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const secData = loadSecurityDB();
-  return verifyToken(token, secData.secretKey);
+  return verifyToken(token, getAuthSecret());
 }
 
 app.post('/api/auth/login', (req, res) => {
@@ -631,7 +668,7 @@ app.post('/api/auth/login', (req, res) => {
     permissions,
     exp: Date.now() + 8 * 60 * 60 * 1000 // 8-hour work shift session
   };
-  const token = signToken(tokenPayload, secData.secretKey);
+  const token = signToken(tokenPayload, getAuthSecret());
   recordAudit(secData, user.username, user.role, 'LOGIN_SUCCESS', ip, 'SUCCESS', `เข้าสู่ระบบสำเร็จ (${permissions.roleName})`);
 
   res.json({

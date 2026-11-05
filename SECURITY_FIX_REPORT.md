@@ -38,8 +38,10 @@
 | `public/portal.html` | ซ่อน Username/Password/PIN ทั้ง 5 กล่อง, เปลี่ยนลิงก์ `?role=` เป็นหน้าเข้าสู่ระบบ | 11 |
 | `Inthara_All_Levels_Secure_Portal.html` | ลบลิงก์ `?role=` (6 จุด) — ไฟล์นี้ไม่ถูกเสิร์ฟผ่านเว็บ (อยู่นอก `public/`) | 6 |
 | `เข้าใช้งานระบบ_อินธารา_ครบทุกระดับ.bat` | ลบลิงก์ `?role=` (5 จุด) | 5 |
+| `.env.example` (ใหม่) | ตัวอย่าง env `AUTH_SECRET` / `CORS_ORIGINS` / `PORT` / `NODE_ENV` (ไม่มีค่าจริง) | ใหม่ |
+| `.gitignore` | กัน `.env`, `.env.local`, `.env.*.local` แต่ยัง track `.env.example` | 4 |
 
-**ไม่ได้แก้ (ตั้งใจ):** `data/*.json`, `*.xlsx`, `.gitignore`, `Dockerfile`, `render.yaml`, `public/customer.html` — เหตุผลอยู่ในหัวข้อ 6
+**ไม่ได้แก้ (ตั้งใจ):** `data/*.json`, `*.xlsx`, `Dockerfile`, `render.yaml`, `public/customer.html` — เหตุผลอยู่ในหัวข้อ 6
 
 ---
 
@@ -328,10 +330,14 @@ git filter-repo --path Inthara_Users_Passwords.xlsx --path data/security_auth.js
 จากนั้น **rotate secret ทุกตัว** (เปลี่ยนรหัสผ่าน + `secretKey`) เพราะถือว่ารั่วแล้ว
 > ⚠️ อย่าทำเองโดยไม่แจ้งเจ้าของ: การเขียน history ใหม่ทำให้ทุกเครื่องต้อง clone ใหม่
 
-### 6.3 🔴 ย้าย secret ไป environment variable
-- `data/security_auth.json` เก็บ `secretKey` ที่ใช้เซ็น JWT (`server.js:583, 634`) — ถ้าไฟล์นี้รั่ว ผู้โจมตี **ปลอม token ผู้บริหารได้ทันที**
-- แนะนำ: `process.env.AUTH_SECRET` + ปฏิเสธการ start ถ้าไม่มีค่า (production)
-- ตั้งค่าบน Render ที่ Environment → `AUTH_SECRET`, `CORS_ORIGINS`
+### 6.3 ✅ (ทำแล้ว) ย้าย secret ไป environment variable
+- **สถานะ: แก้เสร็จในรอบ P0-2** — `server.js` อ่าน secret ตามลำดับนี้:
+  - `server.js:31` `const AUTH_SECRET = String(process.env.AUTH_SECRET || '').trim();`
+  - `server.js:34–45` ถ้า `NODE_ENV=production` และไม่มี `AUTH_SECRET` → พิมพ์ error อธิบายวิธีแก้ แล้ว `process.exit(1)` (ไม่ยอม start)
+  - `server.js:49–60` `getAuthSecret()` — ใช้ env ถ้ามี; ถ้าเป็น dev และไม่มี env จะใช้ `secretKey` จาก `data/security_auth.json` พร้อม log warning ครั้งเดียว (**ไม่เขียนค่าจาก env ลงไฟล์**)
+  - `server.js:620` (verify token) และ `server.js:671` (sign token ที่ login) เปลี่ยนมาเรียก `getAuthSecret()`
+- **ยังต้องทำต่อ:** ตั้ง `AUTH_SECRET` บน Render (Dashboard → Environment) ก่อน deploy รอบถัดไป ไม่อย่างนั้น production จะไม่ start (by design)
+- **ผลข้างเคียงที่ถูกต้อง:** เปลี่ยน `AUTH_SECRET` = token ที่ทุกคนถืออยู่ใช้ไม่ได้ทันที (ทุกคนต้องล็อกอินใหม่)
 
 ### 6.4 🟠 เลิกเก็บรหัสผ่านแบบถอดกลับได้
 ปัจจุบันเก็บทั้ง `hash` (PBKDF2) และ `passwordPlain` คู่กัน เพื่อฟีเจอร์ "ตารางแก้ไขรหัสผ่าน"
@@ -372,7 +378,10 @@ git filter-repo --path Inthara_Users_Passwords.xlsx --path data/security_auth.js
 - [x] ไม่มี `Access-Control-Allow-Origin` เมื่อ Origin ภายนอก
 - [x] login ผิด 20 ครั้ง → 429
 - [x] `/api/customer-portal/*` ยังเข้าได้โดยไม่ต้องมี token พนักงาน
+- [x] `NODE_ENV=production` + ไม่มี `AUTH_SECRET` → ปฏิเสธ start (exit 1) พร้อมข้อความชัดเจน
+- [x] dev ไม่มี env → ล็อกอินได้ + มี warning ใน log / ตั้ง `AUTH_SECRET` → token เก่าใช้ไม่ได้ (401)
 - [ ] ⬜ เปลี่ยนรหัสผ่านทั้ง 5 บัญชี (ข้อ 6.1)
+- [ ] ⬜ ตั้ง `AUTH_SECRET` บน Render ก่อน deploy
 
 **ฟรอนต์**
 - [x] `node --check public/app.js` ผ่าน
