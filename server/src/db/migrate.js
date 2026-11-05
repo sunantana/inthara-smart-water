@@ -19,7 +19,7 @@ export function listMigrations(dir = migrationsDir) {
   return fs
     .readdirSync(dir)
     .filter((file) => /^\d+_.+\.sql$/.test(file))
-    .sort((a, b) => a.localeCompare(b, 'en'));
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
 }
 
 /**

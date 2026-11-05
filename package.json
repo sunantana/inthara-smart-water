@@ -12,7 +12,8 @@
     "start": "node server.js",
     "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "npm --workspace server run dev",
-    "dev:web": "npm --workspace web run dev"
+    "dev:web": "npm --workspace web run dev",
+    "test": "npm --workspace server run test"
   },
   "engines": {
     "node": ">=18.0.0"
