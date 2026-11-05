@@ -837,6 +837,7 @@ app.post('/api/security/change-password', (req, res) => {
     const { salt, hash } = hashPassword(newPassword);
     target.salt = salt;
     target.hash = hash;
+    target.passwordPlain = newPassword;
   }
   if (newPin) target.pin = String(newPin);
   if (unlock) {
