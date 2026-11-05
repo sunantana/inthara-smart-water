@@ -11,3 +11,13 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 *.log
+
+# v2 (Phase 0) — workspaces
+server/node_modules/
+web/node_modules/
+web/dist/
+
+# ฐานข้อมูล SQLite ของ v2 (เก็บ .gitkeep ไว้ให้โฟลเดอร์มีอยู่)
+server/data/*
+!server/data/.gitkeep
+backups/
