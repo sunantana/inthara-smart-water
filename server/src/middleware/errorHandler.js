@@ -21,9 +21,11 @@ export function errorHandler(err, req, res, next) {
 
   if (err instanceof AppError) {
     return res.status(err.status).json({
+      ...(err.lockMinutes !== undefined ? { lockMinutes: err.lockMinutes } : {}),
       error: {
         code: err.code,
         message: err.message,
+        ...(err.lockMinutes !== undefined ? { lockMinutes: err.lockMinutes } : {}),
         ...(err.details ? { details: err.details } : {}),
       },
     });

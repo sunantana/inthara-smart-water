@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 /**
  * ใส่บริบทเพิ่มเติมให้ audit log ของคำขอนี้ (เรียกได้จาก route/service)
  * @param {import('express').Response} res
- * @param {{ entityId?: string|number, detail?: string }} context
+ * @param {{ userId?: number|null, username?: string, role?: string|null, action?: string, entityId?: string|number, detail?: string }} context
  */
 export function setAuditContext(res, context) {
   res.locals.audit = { ...(res.locals.audit || {}), ...context };
@@ -27,6 +27,17 @@ export function audit(action, entity) {
 
     res.on('finish', () => {
       const success = res.statusCode >= 200 && res.statusCode < 400;
+      const auditCtx = res.locals.audit || {};
+      const userId = auditCtx.userId ?? req.user?.id ?? req.user?.sub ?? null;
+      const username =
+        auditCtx.username ??
+        req.user?.username ??
+        (typeof req.body?.username === 'string' && req.body.username.trim()
+          ? req.body.username.trim()
+          : 'anonymous');
+      const role = auditCtx.role ?? req.user?.role ?? null;
+      const resolvedAction = auditCtx.action ?? action;
+
       try {
         getDb()
           .prepare(
@@ -34,18 +45,18 @@ export function audit(action, entity) {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .run(
-            req.user?.id ?? req.user?.sub ?? null,
-            req.user?.username ?? 'anonymous',
-            req.user?.role ?? null,
-            action,
+            userId,
+            username,
+            role,
+            resolvedAction,
             entity ?? null,
-            String(res.locals.audit?.entityId ?? req.params?.id ?? '') || null,
+            String(auditCtx.entityId ?? req.params?.id ?? '') || null,
             req.ip ?? null,
             success ? 'SUCCESS' : 'FAILED',
-            res.locals.audit?.detail ?? null,
+            auditCtx.detail ?? null,
           );
       } catch (error) {
-        logger.error({ err: error, action }, 'เขียน audit log ไม่สำเร็จ');
+        logger.error({ err: error, action: resolvedAction }, 'เขียน audit log ไม่สำเร็จ');
       }
     });
 

@@ -42,6 +42,15 @@ export class AppError extends Error {
     return new AppError(409, 'CONFLICT', message, details);
   }
 
+  static accountLocked(
+    lockMinutes,
+    message = `บัญชีถูกระงับชั่วคราวเนื่องจากใส่รหัสผ่านผิดเกินกำหนด กรุณารออีก ${lockMinutes} นาที`,
+  ) {
+    const err = new AppError(409, 'CONFLICT', message);
+    err.lockMinutes = lockMinutes;
+    return err;
+  }
+
   static tooManyRequests(message = 'เรียกใช้งานถี่เกินไป กรุณาลองใหม่ภายหลัง') {
     return new AppError(429, 'RATE_LIMITED', message);
   }
