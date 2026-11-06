@@ -5,6 +5,7 @@ import healthRouter from './modules/health/router.js';
 import authRouter from './modules/auth/router.js';
 import customersRouter from './modules/customers/router.js';
 import priceTiersRouter from './modules/pricing/router.js';
+import ordersRouter from './modules/orders/router.js';
 
 /**
  * สร้าง express app (ไม่ listen) — แยกจาก index.js เพื่อให้ supertest เรียกใช้ได้
@@ -41,6 +42,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/customers', customersRouter);
   app.use('/api/price-tiers', priceTiersRouter);
+  app.use('/api/orders', ordersRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
