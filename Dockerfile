@@ -9,6 +9,9 @@ FROM node:20-alpine AS web-builder
 
 WORKDIR /app
 
+# Install build dependencies for native modules (better-sqlite3)
+RUN apk add --no-cache python3 make g++
+
 # Copy package manifests for workspace caching
 COPY package*.json ./
 COPY web/package*.json ./web/
@@ -19,7 +22,7 @@ RUN npm ci
 
 # Copy web source and build production bundle
 COPY web ./web
-RUN npm --workspace web run build
+RUN npm --workspace @inthara/web run build
 
 # --------------------------------------------------------
 # Stage 2: Production Server Runner (Express + SQLite)
@@ -29,7 +32,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=10000
 ENV DATA_DIR=/app/data
 ENV BACKUPS_DIR=/app/backups
 
@@ -39,6 +42,7 @@ RUN apk add --no-cache python3 make g++
 # Copy package manifests and install production dependencies only
 COPY package*.json ./
 COPY server/package*.json ./server/
+COPY web/package*.json ./web/
 RUN npm ci --omit=dev --workspace @inthara/server
 
 # Copy server application source code
@@ -50,6 +54,6 @@ COPY --from=web-builder /app/web/dist ./web/dist
 # Create persistent storage directories with full permissions
 RUN mkdir -p /app/data /app/backups && chmod -R 777 /app/data /app/backups
 
-EXPOSE 3001
+EXPOSE 10000
 
 CMD ["node", "server/src/index.js"]
