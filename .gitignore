@@ -12,7 +12,7 @@ yarn-error.log*
 .DS_Store
 *.log
 
-# v2 (Phase 0) — workspaces
+# v2 — workspaces
 server/node_modules/
 web/node_modules/
 web/dist/
@@ -21,3 +21,7 @@ web/dist/
 server/data/*
 !server/data/.gitkeep
 backups/
+
+# ละเว้นโฟลเดอร์ข้อมูลและ scratch เก่า
+data/
+scratch/

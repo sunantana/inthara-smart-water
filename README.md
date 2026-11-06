@@ -68,7 +68,7 @@ npm --workspace web run dev
 
 รันชุดทดสอบ API Integration และ E2E Smoke Tests ทั้งหมด (Vitest):
 ```bash
-npm --workspace @inthara/server test
+npm test
 # หรือรันเฉพาะ E2E Flow
 npm --workspace @inthara/server test -- tests/api/e2e-flow.test.js
 ```
@@ -79,7 +79,7 @@ npm --workspace @inthara/server test -- tests/api/e2e-flow.test.js
 
 คอมไพล์ TypeScript และสร้างไฟล์ Static Bundle สำหรับ Frontend:
 ```bash
-npm --workspace web run build
+npm run build
 ```
 ผลลัพธ์จะอยู่ที่โฟลเดอร์ `web/dist/`
 
@@ -90,7 +90,7 @@ npm --workspace web run build
 สร้างบัญชีผู้ใช้จริง 5 บทบาทตามระบบเดิม พร้อมทรัพยากรตั้งต้น (Price Tiers, พนักงาน, รถส่งน้ำ, เครื่องจักร, สต็อกสินค้า):
 ```bash
 # สามารถระบุรหัสผ่านเริ่มต้นของ Admin ผ่าน env ได้ (ถ้าไม่ระบุ ระบบจะสุ่มให้อัตโนมัติ)
-ADMIN_INITIAL_PASSWORD=YourSecurePass123! node server/scripts/seed-production.mjs
+ADMIN_INITIAL_PASSWORD=YourSecurePass123! npm run seed:production
 ```
 สคริปต์จะพิมพ์ตารางสรุป Username, Display Name, Role, Password และ PIN ออกมาทางหน้าจอ
 
@@ -108,14 +108,14 @@ ADMIN_INITIAL_PASSWORD=YourSecurePass123! node server/scripts/seed-production.mj
 ### 1. รัน Production Server โดยตรง
 ในโหมด `NODE_ENV=production` Backend Express จะทำหน้าที่เสิร์ฟ Static Files จาก `web/dist` และทำ SPA Fallback ให้อัตโนมัติ:
 ```bash
-npm --workspace web run build
+npm run build
 NODE_ENV=production node server/src/index.js
 ```
 
 ### 2. รันผ่าน Docker (Multi-stage Build)
-ใช้ `docker/Dockerfile.v2` ซึ่งทำการ build web frontend และติดตั้ง production server ให้อัตโนมัติในคอนเทนเนอร์เดียว:
+ใช้ `Dockerfile` (หรือ `docker/Dockerfile.v2`) ซึ่งทำการ build web frontend และติดตั้ง production server ให้อัตโนมัติในคอนเทนเนอร์เดียว:
 ```bash
-docker build -f docker/Dockerfile.v2 -t inthara-erp-v2 .
+docker build -t inthara-erp-v2 .
 
 # รันคอนเทนเนอร์พร้อมผูก Volume สำหรับจัดเก็บฐานข้อมูลและไฟล์สำรอง
 docker run -d \
@@ -130,4 +130,4 @@ docker run -d \
 ```
 
 ### 3. Deploy บน Render.com Cloud
-ใช้พิมพ์เขียว `docker/render-v2.yaml` เพื่อตั้งค่า Persistent Disk ขนาด 1GB และรันคอนเทนเนอร์บน Cloud Region Singapore
+ใช้พิมพ์เขียว `render.yaml` (หรือ `docker/render-v2.yaml`) เพื่อตั้งค่า Persistent Disk ขนาด 1GB และรันคอนเทนเนอร์บน Cloud Region Singapore

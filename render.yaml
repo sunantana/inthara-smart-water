@@ -1,13 +1,25 @@
 services:
   - type: web
-    name: inthara-smart-water-erp
-    runtime: node
-    plan: free
+    name: inthara-smart-water-erp-v2
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
     region: singapore
-    buildCommand: npm install
-    startCommand: node server.js
+    disk:
+      name: inthara-data
+      mountPath: /app/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: DATA_DIR
+        value: /app/data
+      - key: BACKUPS_DIR
+        value: /app/backups
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_INITIAL_PASSWORD
+        sync: false
