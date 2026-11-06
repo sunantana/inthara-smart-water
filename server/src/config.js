@@ -86,6 +86,12 @@ export const config = Object.freeze({
     /** อายุ refresh token (วัน) ตาม 02 §5 */
     refreshTtlDays: 7,
   }),
+  // TODO: ย้ายพิกัดโรงงานเริ่มต้นไปอ่านจากตาราง settings ในเฟสถัดไป
+  factoryLocation: Object.freeze({
+    lat: 17.816882513503195,
+    lng: 100.36169257553256,
+    name: 'โรงงานน้ำดื่มอินทรา (Inthara Factory)',
+  }),
 });
 
 export default config;

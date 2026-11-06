@@ -4,6 +4,7 @@ import { closeDb, getDb } from '../src/db/connection.js';
 import { runMigrations } from '../src/db/migrate.js';
 import { hashSecret } from '../src/modules/auth/service.js';
 import { seedDefaultInventoryItems } from '../src/modules/inventory/service.js';
+import { seedDefaultTmsResources } from '../src/modules/tms/service.js';
 
 const WORDS = [
   'Aqua',
@@ -150,10 +151,11 @@ export function seedInitialUsers({ adminPassword, adminPin } = {}) {
 
   runInTx();
   seedDefaultInventoryItems();
+  seedDefaultTmsResources();
   return seeded;
 }
 
-export { seedDefaultInventoryItems };
+export { seedDefaultInventoryItems, seedDefaultTmsResources };
 
 const isMain =
   process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.argv[1].toLowerCase();
@@ -162,6 +164,7 @@ if (isMain) {
   try {
     const seeded = seedInitialUsers();
     const seededInv = seedDefaultInventoryItems();
+    const seededTms = seedDefaultTmsResources();
     console.log('\n====================================================================');
     console.log(' สร้างบัญชีผู้ใช้เริ่มต้นสำเร็จ (แสดงรหัสผ่านและ PIN ครั้งเดียว โปรดจดบันทึก)');
     console.log('====================================================================');
@@ -183,6 +186,19 @@ if (isMain) {
         name,
         stock,
         min_stock,
+        status,
+      })),
+    );
+    console.log('\n====================================================================');
+    console.log(' รถส่งน้ำและคนขับเริ่มต้นสำหรับ TMS (Vehicles & Drivers Seed)');
+    console.log('====================================================================');
+    console.table(
+      seededTms.vehicles.map(({ plate, name, maxBottles189L, maxPacks, fuelRateKmPerLiter, status }) => ({
+        plate,
+        name,
+        maxBottles189L,
+        maxPacks,
+        fuelRateKmPerLiter,
         status,
       })),
     );

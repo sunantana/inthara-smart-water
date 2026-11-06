@@ -1,6 +1,8 @@
 import express from 'express';
 import { logger } from './utils/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { requireAuth } from './middleware/auth.js';
+import { ROLES, requireRole } from './middleware/rbac.js';
 import healthRouter from './modules/health/router.js';
 import authRouter from './modules/auth/router.js';
 import customersRouter from './modules/customers/router.js';
@@ -9,6 +11,8 @@ import ordersRouter from './modules/orders/router.js';
 import checkinsRouter from './modules/delivery/router.js';
 import inventoryRouter from './modules/inventory/router.js';
 import billingRouter from './modules/billing/router.js';
+import tmsRouter from './modules/tms/router.js';
+import { listDrivers, listVehicles } from './modules/tms/service.js';
 
 /**
  * สร้าง express app (ไม่ listen) — แยกจาก index.js เพื่อให้ supertest เรียกใช้ได้
@@ -49,6 +53,24 @@ export function createApp() {
   app.use('/api/checkins', checkinsRouter);
   app.use('/api/inventory', inventoryRouter);
   app.use('/api/billing', billingRouter);
+  app.use('/api/tms', tmsRouter);
+
+  // Minimal read endpoints for vehicles and driver employees needed by TMS (full CRUD in Phase 8)
+  app.get('/api/vehicles', requireAuth, requireRole(...ROLES), (_req, res, next) => {
+    try {
+      return res.json(listVehicles());
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.get('/api/employees', requireAuth, requireRole(...ROLES), (_req, res, next) => {
+    try {
+      return res.json(listDrivers());
+    } catch (error) {
+      return next(error);
+    }
+  });
 
   app.use(notFoundHandler);
   app.use(errorHandler);
