@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
+import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 
 const moduleMeta = findModule('EMP');
 
@@ -35,6 +37,9 @@ export default function EmployeesPage() {
   const canManage = user?.role === 'admin' || user?.role === 'manager';
 
   const [daysThreshold, setDaysThreshold] = useState<number>(30);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(
+    null,
+  );
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
   );
@@ -70,10 +75,9 @@ export default function EmployeesPage() {
     mutationFn: (payload: Record<string, unknown>) =>
       api.post<EmployeeRecord>('/employees', payload),
     onSuccess: (created) => {
-      setFeedback({
-        type: 'success',
-        text: `เพิ่มพนักงาน [${created.code}] ${created.name} เรียบร้อยแล้ว`,
-      });
+      const msg = `เพิ่มพนักงาน [${created.code}] ${created.name} เรียบร้อยแล้ว`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       setName('');
       setNickname('');
       setPhone('');
@@ -83,10 +87,9 @@ export default function EmployeesPage() {
       void queryClient.invalidateQueries({ queryKey: ['employees-license-expiring'] });
     },
     onError: (err) => {
-      setFeedback({
-        type: 'error',
-        text: err instanceof ApiError ? err.message : 'เพิ่มพนักงานไม่สำเร็จ',
-      });
+      const msg = err instanceof ApiError ? err.message : 'เพิ่มพนักงานไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -96,14 +99,18 @@ export default function EmployeesPage() {
         ? api.put<EmployeeRecord>(`/employees/${id}`, { isActive: true })
         : api.delete<EmployeeRecord>(`/employees/${id}`),
     onSuccess: (updated) => {
-      setFeedback({
-        type: 'success',
-        text: `ปรับสถานะพนักงาน [${updated.code}] ${updated.name} เป็น "${
-          updated.isActive ? 'ปฏิบัติงาน (Active)' : 'พ้นสภาพ/พักงาน (Inactive)'
-        }" เรียบร้อยแล้ว`,
-      });
+      const msg = `ปรับสถานะพนักงาน [${updated.code}] ${updated.name} เป็น "${
+        updated.isActive ? 'ปฏิบัติงาน (Active)' : 'พ้นสภาพ/พักงาน (Inactive)'
+      }" เรียบร้อยแล้ว`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['employees-list'] });
       void queryClient.invalidateQueries({ queryKey: ['employees-license-expiring'] });
+    },
+    onError: (err) => {
+      const msg = err instanceof ApiError ? err.message : 'ปรับสถานะพนักงานไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -303,136 +310,168 @@ export default function EmployeesPage() {
         {/* Create Employee Form */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-base font-bold text-slate-900">เพิ่มพนักงานใหม่</h2>
-          <form onSubmit={handleCreate} className="space-y-3 text-sm">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2">
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  ชื่อ-นามสกุล *
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={!canManage}
-                  placeholder="ชื่อ-นามสกุล"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  required
-                />
+          <form onSubmit={handleCreate} className="space-y-4 text-sm">
+            {/* Box 1: ข้อมูลหลัก */}
+            <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+              <div className="text-xs font-bold text-slate-800">ข้อมูลหลัก</div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    ชื่อ-นามสกุล *
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={!canManage}
+                    placeholder="ชื่อ-นามสกุล"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    ชื่อเล่น
+                  </label>
+                  <input
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    disabled={!canManage}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    ตำแหน่ง
+                  </label>
+                  <input
+                    type="text"
+                    value={position}
+                    onChange={(e) => setPosition(e.target.value)}
+                    disabled={!canManage}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    แผนก
+                  </label>
+                  <input
+                    type="text"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    disabled={!canManage}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  ชื่อเล่น
+                  เบอร์โทรศัพท์
                 </label>
                 <input
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="08X-XXX-XXXX"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  ตำแหน่ง
-                </label>
-                <input
-                  type="text"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  แผนก
-                </label>
-                <input
-                  type="text"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
+            {/* Box 2: ข้อมูลเพิ่มเติม (เงินเดือน & ใบขับขี่) */}
+            <CollapsibleSection
+              title="ข้อมูลเพิ่มเติม (เงินเดือน & ใบขับขี่)"
+              badge={driverLicense ? 'มีใบขับขี่' : undefined}
+              defaultOpen={false}
+            >
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      ประเภทค่าจ้าง
+                    </label>
+                    <select
+                      value={salaryType}
+                      onChange={(e) =>
+                        setSalaryType(e.target.value as 'monthly' | 'daily' | 'hourly')
+                      }
+                      disabled={!canManage}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="monthly">รายเดือน (Monthly)</option>
+                      <option value="daily">รายวัน (Daily)</option>
+                      <option value="hourly">รายชั่วโมง (Hourly)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      อัตราค่าจ้าง (บาท)
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      value={salaryBaht}
+                      onChange={(e) => setSalaryBaht(e.target.value)}
+                      disabled={!canManage}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold"
+                    />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  ประเภทค่าจ้าง
-                </label>
-                <select
-                  value={salaryType}
-                  onChange={(e) =>
-                    setSalaryType(e.target.value as 'monthly' | 'daily' | 'hourly')
-                  }
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="monthly">รายเดือน (Monthly)</option>
-                  <option value="daily">รายวัน (Daily)</option>
-                  <option value="hourly">รายชั่วโมง (Hourly)</option>
-                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      เลขใบอนุญาตขับขี่
+                    </label>
+                    <input
+                      type="text"
+                      value={driverLicense}
+                      onChange={(e) => setDriverLicense(e.target.value)}
+                      disabled={!canManage}
+                      placeholder="เช่น 65001122"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      วันหมดอายุใบขับขี่
+                    </label>
+                    <input
+                      type="date"
+                      value={driverLicenseExpiry}
+                      onChange={(e) => setDriverLicenseExpiry(e.target.value)}
+                      disabled={!canManage}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  อัตราค่าจ้าง (บาท)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={salaryBaht}
-                  onChange={(e) => setSalaryBaht(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  เลขใบอนุญาตขับขี่
-                </label>
-                <input
-                  type="text"
-                  value={driverLicense}
-                  onChange={(e) => setDriverLicense(e.target.value)}
-                  disabled={!canManage}
-                  placeholder="เช่น 65001122"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  วันหมดอายุใบขับขี่
-                </label>
-                <input
-                  type="date"
-                  value={driverLicenseExpiry}
-                  onChange={(e) => setDriverLicenseExpiry(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
+            </CollapsibleSection>
 
             {canManage && (
-              <button
-                type="submit"
-                disabled={createEmployeeMutation.isPending}
-                className="w-full rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
-              >
-                {createEmployeeMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกพนักงานใหม่'}
-              </button>
+              <div className="sticky bottom-0 pt-2 bg-white/95 backdrop-blur-xs">
+                <button
+                  type="submit"
+                  disabled={createEmployeeMutation.isPending}
+                  className="w-full min-h-[44px] rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {createEmployeeMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกพนักงานใหม่'}
+                </button>
+              </div>
             )}
           </form>
         </div>
       </div>
+      <Toast message={toast?.message ?? null} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   );
 }

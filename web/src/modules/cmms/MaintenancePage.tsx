@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
+import { getTodayDateString } from '../../lib/date';
+import { useModalEsc } from '../../lib/useModalEsc';
+import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 
 const moduleMeta = findModule('MNT');
 
@@ -63,8 +67,11 @@ export default function MaintenancePage() {
   const canEdit =
     user?.role === 'admin' || user?.role === 'manager' || user?.role === 'staff';
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = getTodayDateString();
   const [selectedMachineFilter, setSelectedMachineFilter] = useState<string>('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(
+    null,
+  );
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
   );
@@ -83,6 +90,8 @@ export default function MaintenancePage() {
   const [hoursModalMachine, setHoursModalMachine] = useState<MachineRecord | null>(null);
   const [editRunHours, setEditRunHours] = useState<string>('0');
   const [editPmInterval, setEditPmInterval] = useState<string>('500');
+
+  useModalEsc(Boolean(hoursModalMachine), () => setHoursModalMachine(null));
 
   const machinesQuery = useQuery({
     queryKey: ['cmms-machines'],
@@ -125,19 +134,17 @@ export default function MaintenancePage() {
       status: 'available' | 'maintenance';
     }) => api.put<MachineRecord>(`/machines/${encodeURIComponent(code)}/status`, { status }),
     onSuccess: (updated) => {
-      setFeedback({
-        type: 'success',
-        text: `เปลี่ยนสถานะเครื่องจักร [${updated.code}] เป็น "${updated.status}" และซิงค์สถานะสินทรัพย์เรียบร้อยแล้ว`,
-      });
+      const msg = `เปลี่ยนสถานะเครื่องจักร [${updated.code}] เป็น "${updated.status}" และซิงค์สถานะสินทรัพย์เรียบร้อยแล้ว`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['cmms-machines'] });
       void queryClient.invalidateQueries({ queryKey: ['cmms-due-pm'] });
       void queryClient.invalidateQueries({ queryKey: ['assets-list'] });
     },
     onError: (err) => {
-      setFeedback({
-        type: 'error',
-        text: err instanceof ApiError ? err.message : 'เปลี่ยนสถานะเครื่องจักรไม่สำเร็จ',
-      });
+      const msg = err instanceof ApiError ? err.message : 'เปลี่ยนสถานะเครื่องจักรไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -156,19 +163,17 @@ export default function MaintenancePage() {
         pmIntervalHours,
       }),
     onSuccess: (updated) => {
-      setFeedback({
-        type: 'success',
-        text: `อัปเดตชั่วโมงเดินเครื่อง [${updated.code}] เป็น ${updated.runHours} / ${updated.pmIntervalHours} ชม. เรียบร้อย`,
-      });
+      const msg = `อัปเดตชั่วโมงเดินเครื่อง [${updated.code}] เป็น ${updated.runHours} / ${updated.pmIntervalHours} ชม. เรียบร้อย`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       setHoursModalMachine(null);
       void queryClient.invalidateQueries({ queryKey: ['cmms-machines'] });
       void queryClient.invalidateQueries({ queryKey: ['cmms-due-pm'] });
     },
     onError: (err) => {
-      setFeedback({
-        type: 'error',
-        text: err instanceof ApiError ? err.message : 'อัปเดตชั่วโมงเดินเครื่องไม่สำเร็จ',
-      });
+      const msg = err instanceof ApiError ? err.message : 'อัปเดตชั่วโมงเดินเครื่องไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -176,12 +181,11 @@ export default function MaintenancePage() {
     mutationFn: (payload: Record<string, unknown>) =>
       api.post<MaintenanceLogRecord>('/maintenance', payload),
     onSuccess: (created) => {
-      setFeedback({
-        type: 'success',
-        text: `บันทึกงานซ่อม/PM เครื่อง [${created.machineCode}] สำเร็จ${
-          created.type === 'pm' ? ' (รีเซ็ตชั่วโมงเดินเครื่องเป็น 0 ชม. แล้ว)' : ''
-        }`,
-      });
+      const msg = `บันทึกงานซ่อม/PM เครื่อง [${created.machineCode}] สำเร็จ${
+        created.type === 'pm' ? ' (รีเซ็ตชั่วโมงเดินเครื่องเป็น 0 ชม. แล้ว)' : ''
+      }`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       setAction('');
       setCostBaht('0');
       setSpareSku('');
@@ -193,10 +197,9 @@ export default function MaintenancePage() {
       void queryClient.invalidateQueries({ queryKey: ['assets-list'] });
     },
     onError: (err) => {
-      setFeedback({
-        type: 'error',
-        text: err instanceof ApiError ? err.message : 'บันทึกงานซ่อมไม่สำเร็จ',
-      });
+      const msg = err instanceof ApiError ? err.message : 'บันทึกงานซ่อมไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -523,7 +526,7 @@ export default function MaintenancePage() {
                   disabled={!canEdit}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
-                  <option value="pm">PM (รีเซ็ตชม.=0)</option>
+                  <option value="pm">PM (บำรุงรักษาเชิงป้องกัน)</option>
                   <option value="repair">ซ่อมฉุกเฉิน (Repair)</option>
                   <option value="inspection">ตรวจสอบ (Inspection)</option>
                 </select>
@@ -542,6 +545,12 @@ export default function MaintenancePage() {
                 />
               </div>
             </div>
+
+            {mntType === 'pm' && (
+              <div className="rounded-lg border border-sky-200 bg-sky-50 p-2.5 text-xs text-sky-800">
+                💡 <strong>ข้อแนะนำ PM:</strong> การบันทึกงานประเภท PM จะรีเซ็ตชั่วโมงเดินเครื่องสะสม (Run Hours) ของเครื่องจักรนี้กลับเป็น 0 ชม. อัตโนมัติ
+              </div>
+            )}
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
@@ -578,6 +587,7 @@ export default function MaintenancePage() {
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   step="0.01"
                   value={costBaht}
@@ -588,16 +598,17 @@ export default function MaintenancePage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="mb-2 text-xs font-semibold text-slate-700">
-                เบิกอะไหล่จากคลัง (ตัดสต็อกอัตโนมัติ)
-              </div>
-              <div className="space-y-2">
+            <CollapsibleSection
+              title="ใช้อะไหล่จากคลัง (ถ้ามี)"
+              badge={spareSku ? 'เบิก 1 รายการ' : undefined}
+              defaultOpen={Boolean(spareSku)}
+            >
+              <div className="space-y-2 pt-1">
                 <select
                   value={spareSku}
                   onChange={(e) => setSpareSku(e.target.value)}
                   disabled={!canEdit}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs"
                 >
                   <option value="">-- ไม่เบิกอะไหล่ --</option>
                   {spareItems.map((sp) => (
@@ -613,26 +624,29 @@ export default function MaintenancePage() {
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       min="1"
                       value={spareQty}
                       onChange={(e) => setSpareQty(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold"
                     />
                   </div>
                 )}
               </div>
-            </div>
+            </CollapsibleSection>
 
             {canEdit && (
-              <button
-                type="submit"
-                disabled={createLogMutation.isPending}
-                className="w-full rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
-              >
-                {createLogMutation.isPending
-                  ? 'กำลังบันทึก...'
-                  : 'บันทึกงานซ่อมบำรุง / PM'}
-              </button>
+              <div className="sticky bottom-0 pt-2 bg-white/95 backdrop-blur-xs">
+                <button
+                  type="submit"
+                  disabled={createLogMutation.isPending}
+                  className="w-full min-h-[44px] rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {createLogMutation.isPending
+                    ? 'กำลังบันทึก...'
+                    : 'บันทึกงานซ่อมบำรุง / PM'}
+                </button>
+              </div>
             )}
           </form>
         </div>
@@ -653,10 +667,11 @@ export default function MaintenancePage() {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   value={editRunHours}
                   onChange={(e) => setEditRunHours(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
                 />
               </div>
               <div>
@@ -665,10 +680,11 @@ export default function MaintenancePage() {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   value={editPmInterval}
                   onChange={(e) => setEditPmInterval(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
                 />
               </div>
             </div>
@@ -676,12 +692,13 @@ export default function MaintenancePage() {
               <button
                 type="button"
                 onClick={() => setHoursModalMachine(null)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700"
+                className="min-h-[44px] rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700"
               >
                 ยกเลิก
               </button>
               <button
                 type="button"
+                disabled={updateHoursMutation.isPending}
                 onClick={() =>
                   updateHoursMutation.mutate({
                     code: hoursModalMachine.code,
@@ -689,14 +706,15 @@ export default function MaintenancePage() {
                     pmIntervalHours: Math.max(1, Math.trunc(Number(editPmInterval) || 500)),
                   })
                 }
-                className="rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700"
+                className="min-h-[44px] rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
               >
-                บันทึกชั่วโมง
+                {updateHoursMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกชั่วโมง'}
               </button>
             </div>
           </div>
         </div>
       )}
+      <Toast message={toast?.message ?? null} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import StepperInput from '../../components/ui/StepperInput';
 
 interface PortalPrice {
   sku: string;
@@ -458,29 +459,13 @@ export default function CustomerPortalPage() {
                       <p className="text-sm font-semibold text-slate-800">น้ำดื่มถัง 18.9L</p>
                       <p className="text-xs text-slate-500">฿{price189L} / ถัง</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setQty189L((q) => Math.max(0, q - 1))}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={qty189L}
-                        onChange={(e) => setQty189L(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-14 text-center border border-slate-300 rounded py-1 text-sm font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQty189L((q) => q + 1)}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <StepperInput
+                      value={qty189L}
+                      onChange={setQty189L}
+                      min={0}
+                      max={999}
+                      unit="ถัง"
+                    />
                   </div>
 
                   {/* FG-350ML */}
@@ -489,29 +474,13 @@ export default function CustomerPortalPage() {
                       <p className="text-sm font-semibold text-slate-800">น้ำดื่มแพ็ค 350ml</p>
                       <p className="text-xs text-slate-500">฿{price350ML} / แพ็ค</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setQty350ML((q) => Math.max(0, q - 1))}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={qty350ML}
-                        onChange={(e) => setQty350ML(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-14 text-center border border-slate-300 rounded py-1 text-sm font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQty350ML((q) => q + 1)}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <StepperInput
+                      value={qty350ML}
+                      onChange={setQty350ML}
+                      min={0}
+                      max={999}
+                      unit="แพ็ค"
+                    />
                   </div>
 
                   {/* FG-600ML */}
@@ -520,29 +489,13 @@ export default function CustomerPortalPage() {
                       <p className="text-sm font-semibold text-slate-800">น้ำดื่มแพ็ค 600ml</p>
                       <p className="text-xs text-slate-500">฿{price600ML} / แพ็ค</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setQty600ML((q) => Math.max(0, q - 1))}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={qty600ML}
-                        onChange={(e) => setQty600ML(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-14 text-center border border-slate-300 rounded py-1 text-sm font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQty600ML((q) => q + 1)}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <StepperInput
+                      value={qty600ML}
+                      onChange={setQty600ML}
+                      min={0}
+                      max={999}
+                      unit="แพ็ค"
+                    />
                   </div>
 
                   {/* FG-1500ML */}
@@ -551,29 +504,13 @@ export default function CustomerPortalPage() {
                       <p className="text-sm font-semibold text-slate-800">น้ำดื่มแพ็ค 1500ml</p>
                       <p className="text-xs text-slate-500">฿{price1500ML} / แพ็ค</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setQty1500ML((q) => Math.max(0, q - 1))}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={qty1500ML}
-                        onChange={(e) => setQty1500ML(Math.max(0, parseInt(e.target.value) || 0))}
-                        className="w-14 text-center border border-slate-300 rounded py-1 text-sm font-semibold"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQty1500ML((q) => q + 1)}
-                        className="w-8 h-8 rounded border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
+                    <StepperInput
+                      value={qty1500ML}
+                      onChange={setQty1500ML}
+                      min={0}
+                      max={999}
+                      unit="แพ็ค"
+                    />
                   </div>
                 </div>
 
@@ -605,18 +542,18 @@ export default function CustomerPortalPage() {
                   </div>
                 </div>
 
-                {/* Estimate & Submit */}
-                <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                {/* Estimate & Submit (Sticky Bar) */}
+                <div className="sticky bottom-0 -mx-5 -mb-5 mt-4 p-4 bg-white/95 backdrop-blur-xs border-t border-slate-200 rounded-b-xl flex flex-wrap items-center justify-between gap-3 shadow-md">
                   <div>
-                    <span className="text-xs text-slate-500">ยอดคำสั่งซื้อรวมโดยประมาณ:</span>
-                    <p className="text-xl font-bold text-sky-800">
+                    <span className="text-xs font-medium text-slate-500">ยอดคำสั่งซื้อรวมโดยประมาณ:</span>
+                    <p className="text-2xl font-black font-mono text-sky-800">
                       ฿{estimatedTotalBaht.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <button
                     type="submit"
                     disabled={orderSubmitting || estimatedTotalBaht === 0}
-                    className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg shadow transition disabled:opacity-50"
+                    className="min-h-[44px] px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg shadow transition disabled:opacity-50"
                   >
                     {orderSubmitting ? 'กำลังส่งคำสั่งซื้อ…' : 'ยืนยันสั่งน้ำดื่ม'}
                   </button>

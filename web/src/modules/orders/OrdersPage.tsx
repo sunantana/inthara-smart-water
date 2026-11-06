@@ -4,7 +4,11 @@ import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
 import { formatBaht } from '../../lib/money';
+import { getTodayDateString } from '../../lib/date';
+import { useModalEsc } from '../../lib/useModalEsc';
 import Toast from '../../components/ui/Toast';
+import StepperInput from '../../components/ui/StepperInput';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 import type { CustomerItem, CustomerSku } from '../crm/CustomersPage';
 
 const moduleMeta = findModule('ORD');
@@ -118,7 +122,7 @@ export const PAYMENT_STATUS_BADGE: Record<
   },
 };
 
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
+const TODAY_ISO = getTodayDateString();
 
 export default function OrdersPage() {
   const { user } = useAuthSession();
@@ -149,6 +153,7 @@ export default function OrdersPage() {
 
   // Modal สร้าง/แก้ไขออเดอร์
   const [modalOpen, setModalOpen] = useState(false);
+  useModalEsc(modalOpen, () => setModalOpen(false));
   const [saving, setSaving] = useState(false);
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -165,6 +170,7 @@ export default function OrdersPage() {
 
   // Modal ยกเลิกออเดอร์
   const [cancelTarget, setCancelTarget] = useState<OrderRecord | null>(null);
+  useModalEsc(Boolean(cancelTarget), () => setCancelTarget(null));
   const [cancelReason, setCancelReason] = useState('');
 
   const ordersQuery = useQuery({
@@ -275,6 +281,19 @@ export default function OrdersPage() {
     setEditingOrder(ord);
     setSelectedCustomerId(String(ord.customerId));
     setDeliveryDate(ord.deliveryDate);
+    setQty189(String(ord.quantities['FG-189L'] ?? 0));
+    setQty350(String(ord.quantities['FG-350ML'] ?? 0));
+    setQty600(String(ord.quantities['FG-600ML'] ?? 0));
+    setQty1500(String(ord.quantities['FG-1500ML'] ?? 0));
+    setNotes(ord.notes ?? '');
+    setFormError(null);
+    setModalOpen(true);
+  }
+
+  function openReorderModal(ord: OrderRecord) {
+    setEditingOrder(null);
+    setSelectedCustomerId(String(ord.customerId));
+    setDeliveryDate(TODAY_ISO);
     setQty189(String(ord.quantities['FG-189L'] ?? 0));
     setQty350(String(ord.quantities['FG-350ML'] ?? 0));
     setQty600(String(ord.quantities['FG-600ML'] ?? 0));
@@ -592,6 +611,14 @@ export default function OrdersPage() {
                         </td>
                         {canWrite && (
                           <td className="space-x-1.5 whitespace-nowrap px-3 py-2 text-right text-xs">
+                            <button
+                              type="button"
+                              onClick={() => openReorderModal(ord)}
+                              className="rounded border border-sky-200 bg-sky-50 px-2 py-1 font-medium text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300"
+                              title="คัดลอกรายการนี้เพื่อสั่งซ้ำ"
+                            >
+                              สั่งซ้ำ
+                            </button>
                             {ord.status === 'draft' && (
                               <button
                                 type="button"
@@ -776,191 +803,164 @@ export default function OrdersPage() {
 
       {/* Modal สร้าง/แก้ไขออเดอร์ (ราคาอ่านอย่างเดียวจากทะเบียนลูกค้า + คำนวณยอดสด + Sticky Footer) */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:border dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                {editingOrder
-                  ? `แก้ไขออเดอร์ [${editingOrder.code}]`
-                  : 'สร้างใบสั่งซื้อใหม่ (ราคาอ้างอิงจากทะเบียนลูกค้าเสมอ · PRC-2)'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                ✕ ปิด
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveOrder} className="mt-4 space-y-4 text-sm">
-              {formError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
-                  {formError}
-                </div>
-              )}
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                    เลือกลูกค้า *
-                  </label>
-                  <select
-                    required
-                    value={selectedCustomerId}
-                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  >
-                    <option value="">-- เลือกลูกค้า --</option>
-                    {customerList.map((c) => (
-                      <option key={c.id} value={String(c.id)}>
-                        [{c.code}] {c.name} ({c.zone ?? 'ไม่ระบุโซน'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                    วันที่จัดส่ง (Delivery Date) *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={deliveryDate}
-                    onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  />
-                </div>
-              </div>
-
-              {/* ข้อมูลสรุปลูกค้าที่เลือก */}
-              {selectedCustomer && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/40">
-                  <div className="flex flex-wrap items-center justify-between gap-1">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      ที่อยู่: {selectedCustomer.address || '-'}
-                    </span>
-                    <span className="text-slate-500 dark:text-slate-400">
-                      โซน: {selectedCustomer.zone || '-'} · โทร: {selectedCustomer.phone || '-'}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* แสดงราคาต่อหน่วยจากทะเบียนลูกค้าและช่องกรอกจำนวน 4 SKU */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                  จำนวนสั่งซื้อ 4 SKU (ราคาคำนวณตามทะเบียนลูกค้าอัตโนมัติ)
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div>
-                    <label className="block text-xs text-slate-600 dark:text-slate-400">
-                      ถัง 18.9L ({formatBaht(activePrices['FG-189L'], true)}/ถัง)
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min="0"
-                      required
-                      value={qty189}
-                      onChange={(e) => setQty189(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-600 dark:text-slate-400">
-                      แพ็ค 350ml ({formatBaht(activePrices['FG-350ML'], true)}/แพ็ค)
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min="0"
-                      required
-                      value={qty350}
-                      onChange={(e) => setQty350(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-600 dark:text-slate-400">
-                      แพ็ค 600ml ({formatBaht(activePrices['FG-600ML'], true)}/แพ็ค)
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min="0"
-                      required
-                      value={qty600}
-                      onChange={(e) => setQty600(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-600 dark:text-slate-400">
-                      แพ็ค 1500ml ({formatBaht(activePrices['FG-1500ML'], true)}/แพ็ค)
-                    </label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min="0"
-                      required
-                      value={qty1500}
-                      onChange={(e) => setQty1500(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between border-t border-slate-200/80 pt-2 dark:border-slate-700">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    ยอดรวมสุทธิ (คำนวณอัตโนมัติ):
-                  </span>
-                  <span className="font-mono text-lg font-bold text-brand-700 dark:text-brand-400">
-                    {formatBaht(liveTotalSat, true)}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  หมายเหตุจัดส่ง
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="ระบุเวลาส่ง หรือจุดวางถังน้ำ…"
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                />
-              </div>
-
-              {/* Sticky Action Footer */}
-              <div className="sticky bottom-0 -mx-6 -mb-6 mt-6 flex items-center justify-end gap-3 rounded-b-2xl border-t border-slate-200 bg-white/95 px-6 py-3.5 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm">
+          <div className="flex h-full w-full max-w-2xl flex-col justify-between overflow-y-auto rounded-none bg-white p-4 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-2xl sm:p-6 dark:border dark:border-slate-800 dark:bg-slate-900">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                  {editingOrder
+                    ? `แก้ไขออเดอร์ [${editingOrder.code}]`
+                    : 'สร้างใบสั่งซื้อใหม่ (ราคาอ้างอิงจากทะเบียนลูกค้าเสมอ · PRC-2)'}
+                </h2>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  aria-label="ปิดหน้าต่าง"
                 >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-brand-700 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50 dark:bg-brand-600 dark:hover:bg-brand-500"
-                >
-                  {saving
-                    ? 'กำลังบันทึก…'
-                    : editingOrder
-                      ? 'บันทึกการแก้ไข'
-                      : 'บันทึกใบสั่งซื้อ'}
+                  ✕
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSaveOrder} className="mt-4 space-y-4 text-sm">
+                {formError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
+                    {formError}
+                  </div>
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                      เลือกลูกค้า *
+                    </label>
+                    <select
+                      required
+                      autoFocus
+                      value={selectedCustomerId}
+                      onChange={(e) => setSelectedCustomerId(e.target.value)}
+                      className="mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    >
+                      <option value="">-- เลือกลูกค้า --</option>
+                      {customerList.map((c) => (
+                        <option key={c.id} value={String(c.id)}>
+                          [{c.code}] {c.name} ({c.zone ?? 'ไม่ระบุโซน'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                      วันที่จัดส่ง (Delivery Date) *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={deliveryDate}
+                      onChange={(e) => setDeliveryDate(e.target.value)}
+                      className="mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                {/* ข้อมูลสรุปลูกค้าที่เลือก */}
+                {selectedCustomer && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/40">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        ที่อยู่: {selectedCustomer.address || '-'}
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        โซน: {selectedCustomer.zone || '-'} · โทร: {selectedCustomer.phone || '-'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* แสดงราคาต่อหน่วยจากทะเบียนลูกค้าและช่องกรอกจำนวน 4 SKU */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+                  <p className="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    จำนวนสั่งซื้อ 4 SKU (ราคาคำนวณตามทะเบียนลูกค้าอัตโนมัติ)
+                  </p>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    <StepperInput
+                      label="ถัง 18.9L"
+                      sublabel={`ราคา ${formatBaht(activePrices['FG-189L'], true)}/ถัง`}
+                      value={Math.max(0, parseInt(qty189) || 0)}
+                      onChange={(v) => setQty189(String(v))}
+                      unit="ถัง"
+                    />
+                    <StepperInput
+                      label="แพ็ค 350ml"
+                      sublabel={`ราคา ${formatBaht(activePrices['FG-350ML'], true)}/แพ็ค`}
+                      value={Math.max(0, parseInt(qty350) || 0)}
+                      onChange={(v) => setQty350(String(v))}
+                      unit="แพ็ค"
+                    />
+                    <StepperInput
+                      label="แพ็ค 600ml"
+                      sublabel={`ราคา ${formatBaht(activePrices['FG-600ML'], true)}/แพ็ค`}
+                      value={Math.max(0, parseInt(qty600) || 0)}
+                      onChange={(v) => setQty600(String(v))}
+                      unit="แพ็ค"
+                    />
+                    <StepperInput
+                      label="แพ็ค 1500ml"
+                      sublabel={`ราคา ${formatBaht(activePrices['FG-1500ML'], true)}/แพ็ค`}
+                      value={Math.max(0, parseInt(qty1500) || 0)}
+                      onChange={(v) => setQty1500(String(v))}
+                      unit="แพ็ค"
+                    />
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-200/80 pt-2 dark:border-slate-700">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      ยอดรวมสุทธิ (คำนวณอัตโนมัติ):
+                    </span>
+                    <span className="font-mono text-lg font-bold text-brand-700 dark:text-brand-400">
+                      {formatBaht(liveTotalSat, true)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ข้อมูลเพิ่มเติม (หมายเหตุจัดส่ง) */}
+                <CollapsibleSection title="ข้อมูลเพิ่มเติม (หมายเหตุจัดส่ง)">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    หมายเหตุจัดส่ง
+                  </label>
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="ระบุเวลาส่ง หรือจุดวางถังน้ำ…"
+                    className="mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  />
+                </CollapsibleSection>
+
+                {/* Sticky Action Footer */}
+                <div className="sticky bottom-0 -mx-4 -mb-4 mt-6 flex items-center justify-end gap-3 border-t border-slate-200 bg-white/95 px-4 py-3.5 shadow-lg backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6 dark:border-slate-800 dark:bg-slate-900/95">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="min-h-[44px] rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="min-h-[44px] rounded-xl bg-brand-700 px-6 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50 dark:bg-brand-600 dark:hover:bg-brand-500"
+                  >
+                    {saving
+                      ? 'กำลังบันทึก…'
+                      : editingOrder
+                        ? 'บันทึกการแก้ไข'
+                        : 'บันทึกใบสั่งซื้อ'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

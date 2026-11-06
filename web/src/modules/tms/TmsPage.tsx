@@ -3,6 +3,8 @@ import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, apiFetch } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
+import { getTodayDateString } from '../../lib/date';
+import Toast from '../../components/ui/Toast';
 
 const DELIVERY_ZONES: readonly string[] = [
   'โซนในเมือง',
@@ -188,9 +190,12 @@ export function TmsPage() {
   const { user } = useAuthSession();
   const canEdit = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'staff';
 
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayIso = useMemo(() => getTodayDateString(), []);
   const [selectedDate, setSelectedDate] = useState<string>(todayIso);
   const [selectedZone, setSelectedZone] = useState<string>('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(
+    null,
+  );
 
   const [factory, setFactory] = useState<FactoryLocation>({
     lat: 17.816882513503195,
@@ -372,11 +377,13 @@ export function TmsPage() {
       setStops(res.orderedStops || []);
       setTotalDistanceKm(res.totalDistanceKm || 0);
       setEstimatedTimeMin(res.estimatedTimeMin || 0);
-      setSuccessMessage(
-        `จัดลำดับเส้นทางอัตโนมัติ (Nearest-Neighbor) สำเร็จ — ระยะทางรวม ${res.totalDistanceKm} กม. (ประมาณ ${res.estimatedTimeMin} นาที)`,
-      );
+      const optMsg = `จัดลำดับเส้นทางอัตโนมัติ (Nearest-Neighbor) สำเร็จ — ระยะทางรวม ${res.totalDistanceKm} กม. (ประมาณ ${res.estimatedTimeMin} นาที)`;
+      setSuccessMessage(optMsg);
+      setToast({ message: optMsg, type: 'success' });
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'จัดลำดับเส้นทางไม่สำเร็จ');
+      const errMsg = err instanceof Error ? err.message : 'จัดลำดับเส้นทางไม่สำเร็จ';
+      setErrorMessage(errMsg);
+      setToast({ message: errMsg, type: 'error' });
     } finally {
       setOptimizing(false);
     }
@@ -478,15 +485,15 @@ export function TmsPage() {
         created.warnings && created.warnings.length > 0
           ? ` (${created.warnings.join(' | ')})`
           : '';
-      setSuccessMessage(`บันทึกทริป ${created.code} สำเร็จ!${warnSuffix}`);
+      const sMsg = `บันทึกทริป ${created.code} สำเร็จ!${warnSuffix}`;
+      setSuccessMessage(sMsg);
+      setToast({ message: sMsg, type: 'success' });
       setActiveTripDetail(created);
       await loadPlanAndTrips();
     } catch (err) {
-      if (err instanceof ApiError) {
-        setErrorMessage(`[${err.status}] ${err.message}`);
-      } else {
-        setErrorMessage(err instanceof Error ? err.message : 'บันทึกทริปไม่สำเร็จ');
-      }
+      const errMsg = err instanceof ApiError ? `[${err.status}] ${err.message}` : (err instanceof Error ? err.message : 'บันทึกทริปไม่สำเร็จ');
+      setErrorMessage(errMsg);
+      setToast({ message: errMsg, type: 'error' });
     } finally {
       setSavingTrip(false);
     }
@@ -498,7 +505,9 @@ export function TmsPage() {
       const detail = await apiFetch<TripRowDto>(`/tms/trips/${tripId}`);
       setActiveTripDetail(detail);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'ไม่สามารถโหลดรายละเอียดทริปได้');
+      const errMsg = err instanceof Error ? err.message : 'ไม่สามารถโหลดรายละเอียดทริปได้';
+      setErrorMessage(errMsg);
+      setToast({ message: errMsg, type: 'error' });
     }
   };
 
@@ -522,12 +531,14 @@ export function TmsPage() {
         }),
       });
       setActiveTripDetail(updated);
-      setSuccessMessage(
-        `อัปเดตลำดับจุดจอดทริป ${updated.code} สำเร็จ — ระยะทางใหม่ ${updated.totalDistanceKm} กม. (${updated.estimatedTimeMin} นาที)`,
-      );
+      const reMsg = `อัปเดตลำดับจุดจอดทริป ${updated.code} สำเร็จ — ระยะทางใหม่ ${updated.totalDistanceKm} กม. (${updated.estimatedTimeMin} นาที)`;
+      setSuccessMessage(reMsg);
+      setToast({ message: reMsg, type: 'success' });
       await loadPlanAndTrips();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'เปลี่ยนลำดับจุดจอดทริปไม่สำเร็จ');
+      const errMsg = err instanceof Error ? err.message : 'เปลี่ยนลำดับจุดจอดทริปไม่สำเร็จ';
+      setErrorMessage(errMsg);
+      setToast({ message: errMsg, type: 'error' });
     }
   };
 
@@ -540,12 +551,14 @@ export function TmsPage() {
         { method: 'POST' },
       );
       setActiveTripDetail(updated);
-      setSuccessMessage(
-        `ปิดทริป ${updated.code} เรียบร้อยแล้ว (ผูกประวัติส่งน้ำ ${updated.linkedCheckins ?? 0} รายการ)`,
-      );
+      const cMsg = `ปิดทริป ${updated.code} เรียบร้อยแล้ว (ผูกประวัติส่งน้ำ ${updated.linkedCheckins ?? 0} รายการ)`;
+      setSuccessMessage(cMsg);
+      setToast({ message: cMsg, type: 'success' });
       await loadPlanAndTrips();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'ปิดทริปไม่สำเร็จ');
+      const errMsg = err instanceof Error ? err.message : 'ปิดทริปไม่สำเร็จ';
+      setErrorMessage(errMsg);
+      setToast({ message: errMsg, type: 'error' });
     }
   };
 
@@ -661,7 +674,7 @@ export function TmsPage() {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-600">เลือกรถขนส่ง</label>
+                <label className="block text-xs font-semibold text-slate-700">เลือกรถขนส่ง</label>
                 <select
                   value={selectedVehicleId}
                   onChange={(e) => {
@@ -670,7 +683,7 @@ export function TmsPage() {
                     const veh = vehicles.find((v) => v.id === val);
                     if (veh?.defaultDriverId) setSelectedDriverId(veh.defaultDriverId);
                   }}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium"
                 >
                   <option value="">-- ไม่ระบุรถ --</option>
                   {vehicles.map((v) => (
@@ -679,33 +692,80 @@ export function TmsPage() {
                     </option>
                   ))}
                 </select>
+                {/* Quick Vehicle selection chips */}
+                {vehicles.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {vehicles.map((v) => {
+                      const isSel = selectedVehicleId === v.id;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedVehicleId(v.id);
+                            if (v.defaultDriverId) setSelectedDriverId(v.defaultDriverId);
+                          }}
+                          className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all ${
+                            isSel
+                              ? 'border-sky-600 bg-sky-50 text-sky-800 ring-2 ring-sky-500/30 font-bold'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          🚛 {v.plate}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600">เวลาออกรถ</label>
+                <label className="block text-xs font-semibold text-slate-700">เวลาออกรถ</label>
                 <input
                   type="time"
                   value={departedTime}
                   onChange={(e) => setDepartedTime(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-600">พนักงานขับรถ</label>
+              <label className="block text-xs font-semibold text-slate-700">พนักงานขับรถ</label>
               <select
                 value={selectedDriverId}
                 onChange={(e) => setSelectedDriverId(e.target.value ? Number(e.target.value) : '')}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium"
               >
                 <option value="">-- ไม่ระบุคนขับ --</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    [{d.code}] {d.name} {d.phone ? `(${d.phone})` : ''}
+                    [{d.code}] {d.name} {d.nickname ? `(${d.nickname})` : ''}
                   </option>
                 ))}
               </select>
+              {/* Quick Driver selection chips */}
+              {drivers.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {drivers.map((d) => {
+                    const isSel = selectedDriverId === d.id;
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setSelectedDriverId(d.id)}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all ${
+                          isSel
+                            ? 'border-sky-600 bg-sky-50 text-sky-800 ring-2 ring-sky-500/30 font-bold'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        👷 {d.nickname || d.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Capacity Progress Bars */}
@@ -778,10 +838,11 @@ export function TmsPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-1">
+            {/* Sticky Trip Action Bar */}
+            <div className="sticky bottom-0 -mx-4 -mb-4 mt-2 p-3 bg-white/95 backdrop-blur-xs border-t border-slate-200 rounded-b-xl flex flex-wrap items-center justify-between gap-3 shadow-sm">
               <div className="text-xs text-slate-600">
                 ยอดขายรวมในทริป:{' '}
-                <strong className="text-slate-900">
+                <strong className="text-sm font-bold font-mono text-slate-900">
                   ฿{formatBaht(summaryMetrics.totalRevenueSat)}
                 </strong>
               </div>
@@ -789,8 +850,8 @@ export function TmsPage() {
                 <button
                   type="button"
                   onClick={handleCreateTrip}
-                  disabled={savingTrip || stops.length === 0}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+                  disabled={savingTrip || stops.length === 0 || summaryMetrics.isOverCapacity}
+                  className="min-h-[44px] rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {savingTrip ? 'กำลังบันทึก...' : '💾 บันทึกทริปจัดส่ง'}
                 </button>
@@ -1047,6 +1108,7 @@ export function TmsPage() {
           )}
         </div>
       </div>
+      <Toast message={toast?.message ?? null} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   );
 }
