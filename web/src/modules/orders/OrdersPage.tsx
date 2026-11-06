@@ -4,6 +4,7 @@ import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
 import { formatBaht } from '../../lib/money';
+import Toast from '../../components/ui/Toast';
 import type { CustomerItem, CustomerSku } from '../crm/CustomersPage';
 
 const moduleMeta = findModule('ORD');
@@ -83,19 +84,19 @@ export const ORDER_STATUS_BADGE: Record<
 > = {
   draft: {
     label: 'ร่าง (Draft)',
-    className: 'bg-slate-100 text-slate-700',
+    className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
   },
   confirmed: {
     label: 'ยืนยันแล้ว',
-    className: 'bg-blue-50 text-blue-700',
+    className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
   },
   delivered: {
     label: 'จัดส่งสำเร็จแล้ว',
-    className: 'bg-emerald-50 text-emerald-700',
+    className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
   },
   cancelled: {
     label: 'ยกเลิก',
-    className: 'bg-red-50 text-red-700',
+    className: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
   },
 };
 
@@ -103,9 +104,18 @@ export const PAYMENT_STATUS_BADGE: Record<
   PaymentStatus,
   { label: string; className: string }
 > = {
-  paid: { label: 'ชำระครบแล้ว', className: 'bg-emerald-50 text-emerald-700' },
-  partial: { label: 'ชำระบางส่วน', className: 'bg-amber-50 text-amber-800' },
-  unpaid: { label: 'ค้างชำระ', className: 'bg-slate-100 text-slate-600' },
+  paid: {
+    label: 'ชำระครบแล้ว',
+    className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+  },
+  partial: {
+    label: 'ชำระบางส่วน',
+    className: 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
+  },
+  unpaid: {
+    label: 'ค้างชำระ',
+    className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  },
 };
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
@@ -134,8 +144,12 @@ export default function OrdersPage() {
   const [routeDate, setRouteDate] = useState(TODAY_ISO);
   const [routeZone, setRouteZone] = useState('');
 
+  // Toast แจ้งเตือน
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Modal สร้าง/แก้ไขออเดอร์
   const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [deliveryDate, setDeliveryDate] = useState(TODAY_ISO);
@@ -197,7 +211,7 @@ export default function OrdersPage() {
   const confirmMutation = useMutation({
     mutationFn: (id: number) => api.post(`/orders/${id}/confirm`),
     onSuccess: () => {
-      setBannerMsg({ type: 'ok', text: 'ยืนยันออเดอร์สำเร็จ' });
+      setToastMessage('ยืนยันออเดอร์สำเร็จ');
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['orders-route-sheet'] });
     },
@@ -215,7 +229,7 @@ export default function OrdersPage() {
     onSuccess: () => {
       setCancelTarget(null);
       setCancelReason('');
-      setBannerMsg({ type: 'ok', text: 'ยกเลิกออเดอร์สำเร็จ' });
+      setToastMessage('ยกเลิกออเดอร์สำเร็จ');
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['orders-route-sheet'] });
     },
@@ -273,6 +287,7 @@ export default function OrdersPage() {
   async function handleSaveOrder(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormError(null);
+    setSaving(true);
 
     const items = [
       { sku: 'FG-189L' as const, qty: Math.max(0, Math.trunc(Number(qty189) || 0)) },
@@ -289,7 +304,7 @@ export default function OrdersPage() {
           items,
           notes: notes.trim() || null,
         });
-        setBannerMsg({ type: 'ok', text: `แก้ไขออเดอร์ [${editingOrder.code}] สำเร็จ` });
+        setToastMessage(`แก้ไขออเดอร์ [${editingOrder.code}] สำเร็จ`);
       } else {
         const res = await api.post<{ data: OrderRecord; duplicateIgnored?: boolean }>('/orders', {
           customerId: Number(selectedCustomerId),
@@ -303,10 +318,7 @@ export default function OrdersPage() {
             text: `ระบบข้ามการบันทึกซ้ำภายใน 4 วินาที (คงออเดอร์ [${res.data.code}] เดิมไว้)`,
           });
         } else {
-          setBannerMsg({
-            type: 'ok',
-            text: `สร้างออเดอร์ [${res.data.code}] สำเร็จ — ลูกค้าถูกเพิ่มเข้าใบเส้นทางวันที่ ${deliveryDate} อัตโนมัติ`,
-          });
+          setToastMessage(`สร้างออเดอร์ [${res.data.code}] สำเร็จ`);
         }
       }
 
@@ -315,6 +327,8 @@ export default function OrdersPage() {
       queryClient.invalidateQueries({ queryKey: ['orders-route-sheet'] });
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'บันทึกออเดอร์ไม่สำเร็จ');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -340,12 +354,16 @@ export default function OrdersPage() {
 
   return (
     <section className="space-y-4">
+      <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">{moduleMeta.label}</h1>
-          <p className="text-sm text-slate-600">{moduleMeta.description}</p>
+          <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+            {moduleMeta.label}
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">{moduleMeta.description}</p>
         </div>
-        <span className="rounded-full bg-slate-200 px-3 py-1 font-mono text-xs text-slate-600">
+        <span className="rounded-full bg-slate-200 px-3 py-1 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           {moduleMeta.code} · SRS §{moduleMeta.srsSection}
         </span>
       </header>
@@ -354,24 +372,24 @@ export default function OrdersPage() {
         <div
           className={`rounded-xl border p-3 text-sm ${
             bannerMsg.type === 'ok'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'
               : bannerMsg.type === 'warn'
-                ? 'border-amber-200 bg-amber-50 text-amber-900'
-                : 'border-red-200 bg-red-50 text-red-700'
+                ? 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300'
+                : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300'
           }`}
         >
           {bannerMsg.text}
         </div>
       )}
 
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
         <button
           type="button"
           onClick={() => setActiveTab('orders')}
-          className={`border-b-2 px-4 py-2 text-sm font-medium ${
+          className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
             activeTab === 'orders'
-              ? 'border-brand-700 text-brand-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              ? 'border-brand-700 text-brand-700 dark:border-brand-500 dark:text-brand-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           รายการใบสั่งซื้อ ({pagination?.total ?? 0})
@@ -379,10 +397,10 @@ export default function OrdersPage() {
         <button
           type="button"
           onClick={() => setActiveTab('route-sheet')}
-          className={`border-b-2 px-4 py-2 text-sm font-medium ${
+          className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
             activeTab === 'route-sheet'
-              ? 'border-brand-700 text-brand-700'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+              ? 'border-brand-700 text-brand-700 dark:border-brand-500 dark:text-brand-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           ใบเส้นทางส่งของรายวัน (Route Sheet · ORD-6)
@@ -390,7 +408,7 @@ export default function OrdersPage() {
       </div>
 
       {activeTab === 'orders' && (
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-850">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="grid flex-1 gap-2 sm:grid-cols-6">
               <input
@@ -401,7 +419,7 @@ export default function OrdersPage() {
                   setPage(1);
                 }}
                 placeholder="ค้นหาเลขที่ ORD- หรือชื่อลูกค้า…"
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm sm:col-span-2"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 sm:col-span-2"
               />
               <input
                 type="text"
@@ -411,7 +429,7 @@ export default function OrdersPage() {
                   setPage(1);
                 }}
                 placeholder="กรองตามโซน…"
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
               <select
                 value={statusFilter}
@@ -419,7 +437,7 @@ export default function OrdersPage() {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="">ทุกสถานะออเดอร์</option>
                 <option value="draft">ร่าง (draft)</option>
@@ -433,7 +451,7 @@ export default function OrdersPage() {
                   setPaymentStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="">ทุกสถานะชำระเงิน</option>
                 <option value="unpaid">ค้างชำระ (unpaid)</option>
@@ -449,7 +467,7 @@ export default function OrdersPage() {
                     setPage(1);
                   }}
                   title="ตั้งแต่วันส่ง"
-                  className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                  className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
                 <span className="text-xs text-slate-400">-</span>
                 <input
@@ -460,7 +478,7 @@ export default function OrdersPage() {
                     setPage(1);
                   }}
                   title="ถึงวันส่ง"
-                  className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                  className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -471,7 +489,7 @@ export default function OrdersPage() {
                   type="button"
                   disabled={exporting}
                   onClick={handleExportExcel}
-                  className="rounded-lg border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+                  className="rounded-lg border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                 >
                   {exporting ? 'กำลังส่งออก…' : 'Export Excel (.xlsx)'}
                 </button>
@@ -480,7 +498,7 @@ export default function OrdersPage() {
                 <button
                   type="button"
                   onClick={openCreateModal}
-                  className="rounded-lg bg-brand-700 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600"
+                  className="rounded-lg bg-brand-700 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-500"
                 >
                   + สร้างออเดอร์ใหม่
                 </button>
@@ -489,8 +507,8 @@ export default function OrdersPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-600">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
                 <tr>
                   <th className="px-3 py-2">เลขที่ออเดอร์</th>
                   <th className="px-3 py-2">วันจัดส่ง</th>
@@ -505,10 +523,13 @@ export default function OrdersPage() {
                   {canWrite && <th className="px-3 py-2 text-right">จัดการ</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-3 py-8 text-center text-sm text-slate-400">
+                    <td
+                      colSpan={11}
+                      className="px-3 py-8 text-center text-sm text-slate-400 dark:text-slate-500"
+                    >
                       ไม่พบรายการออเดอร์ตามเงื่อนไขที่เลือก
                     </td>
                   </tr>
@@ -525,32 +546,34 @@ export default function OrdersPage() {
                     const isEditable = ord.status === 'draft' || ord.status === 'confirmed';
 
                     return (
-                      <tr key={ord.id} className="hover:bg-slate-50">
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs font-semibold text-brand-700">
+                      <tr key={ord.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs font-semibold text-brand-700 dark:text-brand-400">
                           {ord.code}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-700 dark:text-slate-300">
                           {ord.deliveryDate}
                         </td>
                         <td className="px-3 py-2">
-                          <p className="font-medium text-slate-800">{ord.customerName}</p>
-                          <p className="text-xs text-slate-400">
+                          <p className="font-medium text-slate-800 dark:text-slate-200">
+                            {ord.customerName}
+                          </p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">
                             {ord.customerCode} · {ord.zone ?? '-'}
                           </p>
                         </td>
-                        <td className="px-3 py-2 text-center font-mono text-xs font-semibold text-slate-700">
+                        <td className="px-3 py-2 text-center font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
                           {ord.quantities['FG-189L'] || '-'}
                         </td>
-                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">
+                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-600 dark:text-slate-400">
                           {ord.quantities['FG-350ML'] || '-'}
                         </td>
-                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">
+                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-600 dark:text-slate-400">
                           {ord.quantities['FG-600ML'] || '-'}
                         </td>
-                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-600">
+                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-600 dark:text-slate-400">
                           {ord.quantities['FG-1500ML'] || '-'}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm font-bold text-slate-800">
+                        <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm font-bold text-slate-800 dark:text-slate-100">
                           {formatBaht(ord.totalSat, true)}
                         </td>
                         <td className="px-3 py-2 text-xs">
@@ -573,7 +596,7 @@ export default function OrdersPage() {
                               <button
                                 type="button"
                                 onClick={() => confirmMutation.mutate(ord.id)}
-                                className="rounded border border-blue-200 bg-blue-50 px-2 py-1 font-medium text-blue-700 hover:bg-blue-100"
+                                className="rounded border border-blue-200 bg-blue-50 px-2 py-1 font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
                               >
                                 ยืนยัน
                               </button>
@@ -582,7 +605,7 @@ export default function OrdersPage() {
                               <button
                                 type="button"
                                 onClick={() => openEditModal(ord)}
-                                className="rounded border border-slate-200 px-2 py-1 text-slate-700 hover:bg-slate-100"
+                                className="rounded border border-slate-200 px-2 py-1 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                               >
                                 แก้ไข
                               </button>
@@ -594,7 +617,7 @@ export default function OrdersPage() {
                                   setCancelTarget(ord);
                                   setCancelReason('');
                                 }}
-                                className="rounded border border-red-200 bg-red-50 px-2 py-1 text-red-700 hover:bg-red-100"
+                                className="rounded border border-red-200 bg-red-50 px-2 py-1 text-red-700 hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300"
                               >
                                 ยกเลิก
                               </button>
@@ -610,7 +633,7 @@ export default function OrdersPage() {
           </div>
 
           {pagination && (
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-600">
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">
               <span>
                 หน้า {pagination.page} จาก {pagination.totalPages} (รวมทั้งหมด {pagination.total}{' '}
                 รายการ)
@@ -620,7 +643,7 @@ export default function OrdersPage() {
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded border border-slate-200 px-3 py-1 disabled:opacity-40"
+                  className="rounded border border-slate-200 px-3 py-1 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
                   ก่อนหน้า
                 </button>
@@ -628,7 +651,7 @@ export default function OrdersPage() {
                   type="button"
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="rounded border border-slate-200 px-3 py-1 disabled:opacity-40"
+                  className="rounded border border-slate-200 px-3 py-1 disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
                   ถัดไป
                 </button>
@@ -639,37 +662,39 @@ export default function OrdersPage() {
       )}
 
       {activeTab === 'route-sheet' && (
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-850">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <label className="text-xs font-medium text-slate-700">วันที่ส่งของ:</label>
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                วันที่ส่งของ:
+              </label>
               <input
                 type="date"
                 value={routeDate}
                 onChange={(e) => setRouteDate(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
               <input
                 type="text"
                 value={routeZone}
                 onChange={(e) => setRouteZone(e.target.value)}
                 placeholder="กรองโซนสายส่ง…"
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
             </div>
 
             {routeSheet && (
               <div className="flex flex-wrap gap-3 text-xs">
-                <span className="rounded-lg bg-slate-100 px-3 py-1.5 font-medium text-slate-700">
+                <span className="rounded-lg bg-slate-100 px-3 py-1.5 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                   จุดจอดรวม: <strong>{routeSheet.totalStops}</strong> ร้าน ({routeSheet.totalOrders}{' '}
                   ออเดอร์)
                 </span>
-                <span className="rounded-lg bg-brand-700/10 px-3 py-1.5 font-mono font-semibold text-brand-700">
+                <span className="rounded-lg bg-brand-700/10 px-3 py-1.5 font-mono font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
                   18.9L: {routeSheet.quantities['FG-189L']} ถัง · 350ml:{' '}
                   {routeSheet.quantities['FG-350ML']} · 600ml: {routeSheet.quantities['FG-600ML']} ·
                   1500ml: {routeSheet.quantities['FG-1500ML']}
                 </span>
-                <span className="rounded-lg bg-emerald-50 px-3 py-1.5 font-mono font-bold text-emerald-800">
+                <span className="rounded-lg bg-emerald-50 px-3 py-1.5 font-mono font-bold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
                   ยอดรวมสายส่ง: {formatBaht(routeSheet.totalSat, true)}
                 </span>
               </div>
@@ -677,8 +702,8 @@ export default function OrdersPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-600">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
                 <tr>
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">รหัสลูกค้า</th>
@@ -692,41 +717,52 @@ export default function OrdersPage() {
                   <th className="px-3 py-2">ใบสั่งซื้ออ้างอิง</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {(routeSheet?.stops ?? []).length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-3 py-8 text-center text-sm text-slate-400">
+                    <td
+                      colSpan={10}
+                      className="px-3 py-8 text-center text-sm text-slate-400 dark:text-slate-500"
+                    >
                       ไม่มีรายการต้องจัดส่งในวันที่ {routeDate}
                     </td>
                   </tr>
                 ) : (
                   (routeSheet?.stops ?? []).map((stop, idx) => (
-                    <tr key={stop.customerId} className="hover:bg-slate-50">
-                      <td className="px-3 py-2 font-mono text-xs text-slate-500">{idx + 1}</td>
-                      <td className="px-3 py-2 font-mono text-xs font-semibold text-brand-700">
+                    <tr key={stop.customerId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="px-3 py-2 font-mono text-xs text-slate-500 dark:text-slate-400">
+                        {idx + 1}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs font-semibold text-brand-700 dark:text-brand-400">
                         {stop.customerCode}
                       </td>
                       <td className="px-3 py-2">
-                        <p className="font-medium text-slate-800">{stop.customerName}</p>
-                        <p className="text-xs text-slate-500">{stop.address ?? '-'}</p>
+                        <p className="font-medium text-slate-800 dark:text-slate-200">
+                          {stop.customerName}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {stop.address ?? '-'}
+                        </p>
                       </td>
-                      <td className="px-3 py-2 text-xs text-slate-600">{stop.zone ?? '-'}</td>
-                      <td className="px-3 py-2 text-center font-mono font-semibold text-slate-800">
+                      <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">
+                        {stop.zone ?? '-'}
+                      </td>
+                      <td className="px-3 py-2 text-center font-mono font-semibold text-slate-800 dark:text-slate-200">
                         {stop.quantities['FG-189L']}
                       </td>
-                      <td className="px-3 py-2 text-center font-mono text-slate-600">
+                      <td className="px-3 py-2 text-center font-mono text-slate-600 dark:text-slate-400">
                         {stop.quantities['FG-350ML']}
                       </td>
-                      <td className="px-3 py-2 text-center font-mono text-slate-600">
+                      <td className="px-3 py-2 text-center font-mono text-slate-600 dark:text-slate-400">
                         {stop.quantities['FG-600ML']}
                       </td>
-                      <td className="px-3 py-2 text-center font-mono text-slate-600">
+                      <td className="px-3 py-2 text-center font-mono text-slate-600 dark:text-slate-400">
                         {stop.quantities['FG-1500ML']}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700">
+                      <td className="px-3 py-2 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">
                         {formatBaht(stop.totalSat, true)}
                       </td>
-                      <td className="px-3 py-2 font-mono text-xs text-slate-500">
+                      <td className="px-3 py-2 font-mono text-xs text-slate-500 dark:text-slate-400">
                         {stop.orderCodes.join(', ')}
                       </td>
                     </tr>
@@ -738,29 +774,42 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Modal สร้าง/แก้ไขออเดอร์ (ราคาอ่านอย่างเดียวจากทะเบียนลูกค้า + คำนวณยอดสด) */}
+      {/* Modal สร้าง/แก้ไขออเดอร์ (ราคาอ่านอย่างเดียวจากทะเบียนลูกค้า + คำนวณยอดสด + Sticky Footer) */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-base font-semibold text-slate-800">
-              {editingOrder
-                ? `แก้ไขออเดอร์ [${editingOrder.code}]`
-                : 'สร้างใบสั่งซื้อใหม่ (ราคาอ้างอิงจากทะเบียนลูกค้าเสมอ · PRC-2)'}
-            </h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:border dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                {editingOrder
+                  ? `แก้ไขออเดอร์ [${editingOrder.code}]`
+                  : 'สร้างใบสั่งซื้อใหม่ (ราคาอ้างอิงจากทะเบียนลูกค้าเสมอ · PRC-2)'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                ✕ ปิด
+              </button>
+            </div>
 
             <form onSubmit={handleSaveOrder} className="mt-4 space-y-4 text-sm">
               {formError && (
-                <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{formError}</div>
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
+                  {formError}
+                </div>
               )}
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700">เลือกลูกค้า *</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    เลือกลูกค้า *
+                  </label>
                   <select
                     required
                     value={selectedCustomerId}
                     onChange={(e) => setSelectedCustomerId(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   >
                     <option value="">-- เลือกลูกค้า --</option>
                     {customerList.map((c) => (
@@ -772,7 +821,7 @@ export default function OrdersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                     วันที่จัดส่ง (Delivery Date) *
                   </label>
                   <input
@@ -780,105 +829,135 @@ export default function OrdersPage() {
                     required
                     value={deliveryDate}
                     onChange={(e) => setDeliveryDate(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 font-mono"
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
                 </div>
               </div>
 
-              {/* แสดงราคาต่อหน่วยจากทะเบียนลูกค้าแบบอ่านอย่างเดียว (Read-only) */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-xs font-semibold text-slate-700">
-                  ราคาต่อหน่วยตามทะเบียนลูกค้า (อ่านอย่างเดียว — แก้ราคาได้ที่หน้าทะเบียนลูกค้า)
+              {/* ข้อมูลสรุปลูกค้าที่เลือก */}
+              {selectedCustomer && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/40">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      ที่อยู่: {selectedCustomer.address || '-'}
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      โซน: {selectedCustomer.zone || '-'} · โทร: {selectedCustomer.phone || '-'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* แสดงราคาต่อหน่วยจากทะเบียนลูกค้าและช่องกรอกจำนวน 4 SKU */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  จำนวนสั่งซื้อ 4 SKU (ราคาคำนวณตามทะเบียนลูกค้าอัตโนมัติ)
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div>
-                    <label className="block text-xs text-slate-600">
+                    <label className="block text-xs text-slate-600 dark:text-slate-400">
                       ถัง 18.9L ({formatBaht(activePrices['FG-189L'], true)}/ถัง)
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       min="0"
                       required
                       value={qty189}
                       onChange={(e) => setQty189(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600">
+                    <label className="block text-xs text-slate-600 dark:text-slate-400">
                       แพ็ค 350ml ({formatBaht(activePrices['FG-350ML'], true)}/แพ็ค)
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       min="0"
                       required
                       value={qty350}
                       onChange={(e) => setQty350(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600">
+                    <label className="block text-xs text-slate-600 dark:text-slate-400">
                       แพ็ค 600ml ({formatBaht(activePrices['FG-600ML'], true)}/แพ็ค)
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       min="0"
                       required
                       value={qty600}
                       onChange={(e) => setQty600(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600">
+                    <label className="block text-xs text-slate-600 dark:text-slate-400">
                       แพ็ค 1500ml ({formatBaht(activePrices['FG-1500ML'], true)}/แพ็ค)
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       min="0"
                       required
                       value={qty1500}
                       onChange={(e) => setQty1500(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono"
+                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-mono dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2">
-                  <span className="text-xs font-medium text-slate-600">
+                <div className="mt-3 flex items-center justify-between border-t border-slate-200/80 pt-2 dark:border-slate-700">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                     ยอดรวมสุทธิ (คำนวณอัตโนมัติ):
                   </span>
-                  <span className="font-mono text-lg font-bold text-brand-700">
+                  <span className="font-mono text-lg font-bold text-brand-700 dark:text-brand-400">
                     {formatBaht(liveTotalSat, true)}
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700">หมายเหตุจัดส่ง</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  หมายเหตุจัดส่ง
+                </label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ระบุเวลาส่ง หรือจุดวางถังน้ำ…"
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              {/* Sticky Action Footer */}
+              <div className="sticky bottom-0 -mx-6 -mb-6 mt-6 flex items-center justify-end gap-3 rounded-b-2xl border-t border-slate-200 bg-white/95 px-6 py-3.5 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-brand-700 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600"
+                  disabled={saving}
+                  className="rounded-lg bg-brand-700 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 disabled:opacity-50 dark:bg-brand-600 dark:hover:bg-brand-500"
                 >
-                  บันทึกใบสั่งซื้อ
+                  {saving
+                    ? 'กำลังบันทึก…'
+                    : editingOrder
+                      ? 'บันทึกการแก้ไข'
+                      : 'บันทึกใบสั่งซื้อ'}
                 </button>
               </div>
             </form>
@@ -888,29 +967,31 @@ export default function OrdersPage() {
 
       {/* Modal ยืนยันการยกเลิกออเดอร์ */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-base font-semibold text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:border dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
               ยืนยันการยกเลิกออเดอร์ [{cancelTarget.code}]
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               ลูกค้า: {cancelTarget.customerName} · วันส่ง {cancelTarget.deliveryDate}
             </p>
             <div className="mt-3">
-              <label className="block text-xs font-medium text-slate-700">เหตุผลที่ยกเลิก</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                เหตุผลที่ยกเลิก
+              </label>
               <input
                 type="text"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="เช่น ลูกค้าแจ้งเลื่อนวันส่ง"
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
             </div>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setCancelTarget(null)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 ปิด
               </button>
