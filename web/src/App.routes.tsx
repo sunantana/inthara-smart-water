@@ -59,6 +59,7 @@ export default function AppRoutes() {
             <Route index element={<DefaultRedirect />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="customers" element={<CustomersPage />} />
+            <Route path="customers/:id" element={<CustomersPage />} />
             <Route path="price-tiers" element={<PriceTiersPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="checkins" element={<CheckinsPage />} />

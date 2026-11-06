@@ -18,6 +18,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.4.1",
+    "exceljs": "^4.4.0",
     "express": "^4.22.3",
     "jsonwebtoken": "^9.0.3",
     "pino": "^10.4.0",

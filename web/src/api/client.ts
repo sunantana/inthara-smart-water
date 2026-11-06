@@ -137,6 +137,63 @@ export async function apiFetch<T>(
   return payload as T;
 }
 
+/**
+ * ดาวน์โหลดไฟล์ไบนารี (Blob เช่น .xlsx) โดยแนบ Authorization: Bearer <accessToken>
+ * และรองรับการต่ออายุ token อัตโนมัติเมื่อได้ 401
+ */
+export async function downloadWithAuth(
+  path: string,
+  fallbackFilename = 'export.xlsx',
+  isRetry = false,
+): Promise<void> {
+  const token = getAccessToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(`/api${path}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers,
+  });
+
+  if (response.status === 401 && !isRetry) {
+    const refreshed = await tryRefreshSession();
+    if (refreshed) {
+      return downloadWithAuth(path, fallbackFilename, true);
+    }
+    redirectToLoginIfNeeded(path);
+  }
+
+  if (!response.ok) {
+    const isJson = response.headers.get('content-type')?.includes('application/json') ?? false;
+    const payload = isJson ? ((await response.json()) as ErrorPayload) : null;
+    const error = payload?.error;
+    throw new ApiError(
+      response.status,
+      error?.code ?? 'INTERNAL',
+      error?.message ?? 'ดาวน์โหลดไฟล์ไม่สำเร็จ',
+    );
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const filename = match?.[1] ?? fallbackFilename;
+
+  if (typeof window !== 'undefined') {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   post: <T>(path: string, body?: unknown) =>
@@ -147,6 +204,8 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
+  download: (path: string, fallbackFilename?: string) =>
+    downloadWithAuth(path, fallbackFilename),
 };
 
 export interface HealthResponse {
