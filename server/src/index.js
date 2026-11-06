@@ -1,8 +1,9 @@
 import { createApp } from './app.js';
 import { config } from './config.js';
-import { closeDb, dbFile } from './db/connection.js';
+import { closeDb, dbFile, getDb } from './db/connection.js';
 import { runMigrations } from './db/migrate.js';
 import { startBackupCron, stopBackupCron } from './modules/backup/service.js';
+import { seedProduction } from '../scripts/seed-production.mjs';
 import { logger } from './utils/logger.js';
 
 // 1) ฐานข้อมูล + migration ก่อนรับ request
@@ -12,6 +13,14 @@ try {
     { database: dbFile(), appliedMigrations: applied, totalAppliedNow: applied.length },
     'ฐานข้อมูลพร้อมใช้งาน',
   );
+
+  // Auto-seed: ถ้าฐานข้อมูลยังไม่มีผู้ใช้ ให้สร้างผู้ใช้และข้อมูลตั้งต้นอัตโนมัติ
+  const db = getDb();
+  const userCount = db.prepare('SELECT COUNT(*) AS cnt FROM users').get().cnt;
+  if (userCount === 0) {
+    logger.info('ฐานข้อมูลยังไม่มีผู้ใช้ — กำลังรัน seed production อัตโนมัติ...');
+    seedProduction({ adminPassword: process.env.ADMIN_INITIAL_PASSWORD });
+  }
 } catch (error) {
   logger.error({ err: error }, '[FATAL] เตรียมฐานข้อมูลไม่สำเร็จ');
   process.exit(1);
@@ -48,7 +57,10 @@ function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('unhandledRejection', (reason) => {
-  logger.error({ err: reason }, 'unhandledRejection');
+  logger.fatal({ err: reason }, 'unhandledRejection');
+  shutdown('unhandledRejection');
 });
-
-export { app, server };
+process.on('uncaughtException', (error) => {
+  logger.fatal({ err: error }, 'uncaughtException');
+  shutdown('uncaughtException');
+});
