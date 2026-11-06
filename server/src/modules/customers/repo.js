@@ -451,29 +451,48 @@ export function listCustomerOrdersPaginated(customerId, { offset = 0, limit = 50
   };
 }
 
-export function listCustomerLedgerPaginated(customerId, { offset = 0, limit = 50 } = {}) {
+export function listCustomerLedgerPaginated(
+  customerId,
+  { offset = 0, limit = 50, from = '', to = '' } = {},
+) {
   const db = getDb();
+  const clauses = ['l.customer_id = ?'];
+  const params = [customerId];
+
+  if (from) {
+    clauses.push('date(l.created_at) >= date(?)');
+    params.push(from);
+  }
+  if (to) {
+    clauses.push('date(l.created_at) <= date(?)');
+    params.push(to);
+  }
+
+  const whereSql = `WHERE ${clauses.join(' AND ')}`;
   const totalRow = db
-    .prepare(`SELECT COUNT(*) AS total FROM customer_ledger WHERE customer_id = ?`)
-    .get(customerId);
+    .prepare(`SELECT COUNT(*) AS total FROM customer_ledger l ${whereSql}`)
+    .get(...params);
   const rows = db
     .prepare(
       `SELECT
-         id,
-         customer_id,
-         entry_type,
-         amount_sat,
-         ref_type,
-         ref_id,
-         note,
-         created_by,
-         created_at
-       FROM customer_ledger
-       WHERE customer_id = ?
-       ORDER BY created_at DESC, id DESC
+         l.id,
+         l.customer_id,
+         l.entry_type,
+         l.amount_sat,
+         l.ref_type,
+         l.ref_id,
+         l.note,
+         l.created_by,
+         u.display_name AS created_by_name,
+         u.username AS created_by_username,
+         l.created_at
+       FROM customer_ledger l
+       LEFT JOIN users u ON u.id = l.created_by
+       ${whereSql}
+       ORDER BY l.created_at DESC, l.id DESC
        LIMIT ? OFFSET ?`,
     )
-    .all(customerId, limit, offset);
+    .all(...params, limit, offset);
 
   return {
     rows,
