@@ -1,15 +1,21 @@
+# Render Blueprint — Inthara Smart Water ERP v2
+# แผนปัจจุบัน: FREE (ทดลองใช้) — ไม่มี Persistent Disk
+# ⚠️ แผน free: ข้อมูล SQLite จะถูกรีเซ็ตทุกครั้งที่ Deploy/Restart ใหม่
+#    และเซิร์ฟเวอร์จะหลับ (spin down) เมื่อไม่มีคนใช้ ~15 นาที (ตื่น ~50 วินาทีเมื่อมีคำขอ)
+#
+# เมื่อพร้อมใช้งานจริง: เปลี่ยน plan เป็น "starter" และเพิ่มบล็อก disk ด้านล่างกลับเข้ามา
+#   disk:
+#     name: inthara-data
+#     mountPath: /app/data
+#     sizeGB: 1
 services:
   - type: web
     name: inthara-smart-water-erp-v2
     env: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free
     region: singapore
-    disk:
-      name: inthara-data
-      mountPath: /app/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
