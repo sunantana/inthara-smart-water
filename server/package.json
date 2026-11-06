@@ -10,7 +10,8 @@
     "start": "node src/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed:admin": "node scripts/seed-admin.mjs"
+    "seed:admin": "node scripts/seed-admin.mjs",
+    "seed:production": "node scripts/seed-production.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -18,6 +19,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.4.1",
+    "compression": "^1.8.2",
     "exceljs": "^4.4.0",
     "express": "^4.22.3",
     "jsonwebtoken": "^9.0.3",
