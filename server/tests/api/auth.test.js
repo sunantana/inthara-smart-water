@@ -3,7 +3,7 @@ import request from 'supertest';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { seedInitialUsers } from '../../scripts/seed-admin.mjs';
 import { createApp } from '../../src/app.js';
-import { config } from '../../src/config.js';
+import { config, resolveJwtSecret } from '../../src/config.js';
 import { getDb } from '../../src/db/connection.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { REFRESH_COOKIE_NAME, resetLoginRateLimiter } from '../../src/modules/auth/router.js';
@@ -478,6 +478,23 @@ describe('Phase 1 — Auth + RBAC + Audit Integration Tests', () => {
       expect(results).toHaveLength(5);
       const count = db.prepare('SELECT COUNT(*) AS total FROM users').get().total;
       expect(count).toBe(5);
+    });
+
+    it('โหมด dev/test ที่ไม่ตั้ง JWT_SECRET จะได้ค่า secret สุ่มไม่ว่างพร้อม warning 1 ครั้ง และโหมด production ยังปฏิเสธ start เหมือนเดิม', () => {
+      const warnings = [];
+      const devSecret = resolveJwtSecret({ NODE_ENV: 'development', JWT_SECRET: '' }, (msg) =>
+        warnings.push(msg),
+      );
+
+      expect(typeof devSecret).toBe('string');
+      expect(devSecret.length).toBe(96);
+      expect(warnings).toEqual([
+        '[DEV] ไม่พบ JWT_SECRET — ใช้ secret ชั่วคราว เซสชันจะหมดเมื่อ restart',
+      ]);
+
+      expect(() => resolveJwtSecret({ NODE_ENV: 'production', JWT_SECRET: '' })).toThrow(
+        /\[FATAL\] ไม่ได้ตั้งค่า JWT_SECRET/,
+      );
     });
   });
 });
