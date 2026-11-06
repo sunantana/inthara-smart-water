@@ -1,27 +1,27 @@
 {
   "name": "inthara-smart-water-erp",
-  "version": "1.0.0",
-  "description": "ระบบบริหารจัดการโรงงานผลิตน้ำดื่มอินธารา (Inthara Smart Water ERP & TMS GPS Route Optimization)",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "ระบบบริหารจัดการโรงงานผลิตน้ำดื่มอินธารา (Inthara Smart Water ERP v2)",
+  "main": "server/src/index.js",
   "private": true,
+  "type": "module",
   "workspaces": [
     "server",
     "web"
   ],
   "scripts": {
-    "start": "node server.js",
+    "start": "node server/src/index.js",
+    "build": "npm --workspace @inthara/web run build",
+    "build:web": "npm --workspace @inthara/web run build",
     "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
-    "dev:server": "npm --workspace server run dev",
-    "dev:web": "npm --workspace web run dev",
-    "test": "npm --workspace server run test"
+    "dev:server": "npm --workspace @inthara/server run dev",
+    "dev:web": "npm --workspace @inthara/web run dev",
+    "test": "npm --workspace @inthara/server run test",
+    "seed:production": "npm --workspace @inthara/server run seed:production",
+    "seed:admin": "npm --workspace @inthara/server run seed:admin"
   },
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.1",
-    "xlsx": "^0.18.5"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "concurrently": "^10.0.6"
