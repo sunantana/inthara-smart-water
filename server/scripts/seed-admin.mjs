@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { closeDb, getDb } from '../src/db/connection.js';
 import { runMigrations } from '../src/db/migrate.js';
 import { hashSecret } from '../src/modules/auth/service.js';
+import { seedDefaultInventoryItems } from '../src/modules/inventory/service.js';
 
 const WORDS = [
   'Aqua',
@@ -148,8 +149,11 @@ export function seedInitialUsers({ adminPassword, adminPin } = {}) {
   });
 
   runInTx();
+  seedDefaultInventoryItems();
   return seeded;
 }
+
+export { seedDefaultInventoryItems };
 
 const isMain =
   process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.argv[1].toLowerCase();
@@ -157,6 +161,7 @@ const isMain =
 if (isMain) {
   try {
     const seeded = seedInitialUsers();
+    const seededInv = seedDefaultInventoryItems();
     console.log('\n====================================================================');
     console.log(' สร้างบัญชีผู้ใช้เริ่มต้นสำเร็จ (แสดงรหัสผ่านและ PIN ครั้งเดียว โปรดจดบันทึก)');
     console.log('====================================================================');
@@ -166,6 +171,18 @@ if (isMain) {
         role,
         password,
         pin,
+        status,
+      })),
+    );
+    console.log('\n====================================================================');
+    console.log(' สต็อกเริ่มต้น 5 SKU หลัก (Inventory Seed)');
+    console.log('====================================================================');
+    console.table(
+      seededInv.map(({ sku, name, stock, min_stock, status }) => ({
+        sku,
+        name,
+        stock,
+        min_stock,
         status,
       })),
     );
