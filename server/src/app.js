@@ -13,7 +13,11 @@ import inventoryRouter from './modules/inventory/router.js';
 import billingRouter from './modules/billing/router.js';
 import tmsRouter from './modules/tms/router.js';
 import productionRouter from './modules/production/router.js';
-import { listDrivers, listVehicles } from './modules/tms/service.js';
+import { machinesRouter, maintenanceRouter } from './modules/cmms/router.js';
+import assetsRouter from './modules/assets/router.js';
+import employeesRouter from './modules/employees/router.js';
+import expensesRouter from './modules/expenses/router.js';
+import { listVehicles } from './modules/tms/service.js';
 
 /**
  * สร้าง express app (ไม่ listen) — แยกจาก index.js เพื่อให้ supertest เรียกใช้ได้
@@ -56,19 +60,16 @@ export function createApp() {
   app.use('/api/billing', billingRouter);
   app.use('/api/tms', tmsRouter);
   app.use('/api/production', productionRouter);
+  app.use('/api/machines', machinesRouter);
+  app.use('/api/maintenance', maintenanceRouter);
+  app.use('/api/assets', assetsRouter);
+  app.use('/api/employees', employeesRouter);
+  app.use('/api/expenses', expensesRouter);
 
-  // Minimal read endpoints for vehicles and driver employees needed by TMS (full CRUD in Phase 8)
+  // Read endpoint for vehicles needed by TMS
   app.get('/api/vehicles', requireAuth, requireRole(...ROLES), (_req, res, next) => {
     try {
       return res.json(listVehicles());
-    } catch (error) {
-      return next(error);
-    }
-  });
-
-  app.get('/api/employees', requireAuth, requireRole(...ROLES), (_req, res, next) => {
-    try {
-      return res.json(listDrivers());
     } catch (error) {
       return next(error);
     }

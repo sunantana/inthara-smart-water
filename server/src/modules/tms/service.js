@@ -640,6 +640,11 @@ export function createTrip(payload) {
     if (!driver) {
       throw AppError.notFound(`ไม่พบข้อมูลพนักงานขับรถรหัส ID ${driverId}`);
     }
+    if (Number(driver.is_active ?? 1) !== 1) {
+      throw AppError.badRequest(
+        `พนักงานขับรถ [${driver.code}] ${driver.name} มีสถานะไม่ใช้งาน (inactive) ไม่สามารถจัดทริปได้ (EMP-2)`,
+      );
+    }
   }
 
   const calc = buildTripStopsCalculation({
