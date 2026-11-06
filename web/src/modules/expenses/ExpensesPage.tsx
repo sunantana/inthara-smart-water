@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
+import { getTodayDateString } from '../../lib/date';
+import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 
 const moduleMeta = findModule('EXP');
 
@@ -68,9 +71,12 @@ export default function ExpensesPage() {
   const canCreate =
     user?.role === 'admin' || user?.role === 'manager' || user?.role === 'staff';
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = getTodayDateString();
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(
+    null,
+  );
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
   );
@@ -111,19 +117,17 @@ export default function ExpensesPage() {
     mutationFn: (payload: Record<string, unknown>) =>
       api.post<ExpenseRecord>('/expenses', payload),
     onSuccess: (created) => {
-      setFeedback({
-        type: 'success',
-        text: `บันทึกรายจ่ายหมวด ${CATEGORY_LABELS[created.category]} จำนวน ฿${formatBaht(created.amountSat)} สำเร็จ`,
-      });
+      const msg = `บันทึกรายจ่ายหมวด ${CATEGORY_LABELS[created.category]} จำนวน ฿${formatBaht(created.amountSat)} สำเร็จ`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       setDescription('');
       void queryClient.invalidateQueries({ queryKey: ['expenses-list'] });
       void queryClient.invalidateQueries({ queryKey: ['trip-costing'] });
     },
     onError: (err) => {
-      setFeedback({
-        type: 'error',
-        text: err instanceof ApiError ? err.message : 'บันทึกรายจ่ายไม่สำเร็จ',
-      });
+      const msg = err instanceof ApiError ? err.message : 'บันทึกรายจ่ายไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -332,7 +336,7 @@ export default function ExpensesPage() {
           <h2 className="mb-3 text-base font-bold text-slate-900">
             บันทึกค่าใช้จ่ายใหม่ (EXP-1)
           </h2>
-          <form onSubmit={handleCreate} className="space-y-3 text-sm">
+          <form onSubmit={handleCreate} className="space-y-4 text-sm">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
                 วันที่จ่าย *
@@ -348,90 +352,113 @@ export default function ExpensesPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                หมวดหมู่ค่าใช้จ่าย *
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                เลือกหมวดหมู่ค่าใช้จ่าย *
               </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                disabled={!canCreate}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                {Object.entries(CATEGORY_LABELS).map(([k, label]) => (
-                  <option key={k} value={k}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(CATEGORY_LABELS).map(([k, label]) => {
+                  const isSelected = category === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      disabled={!canCreate}
+                      onClick={() => setCategory(k as ExpenseCategory)}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-medium text-left transition-all ${
+                        isSelected
+                          ? 'border-sky-600 bg-sky-50 text-sky-800 ring-2 ring-sky-500/30 font-bold'
+                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
                 จำนวนเงิน (บาท) *
               </label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={amountBaht}
-                onChange={(e) => setAmountBaht(e.target.value)}
-                disabled={!canCreate}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                คำอธิบายรายการ
-              </label>
-              <textarea
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={!canCreate}
-                placeholder="เช่น เติมน้ำมันเพิ่ม / ค่าปะยางระหว่างทริป"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="mb-2 text-xs font-semibold text-slate-700">
-                ผูกอ้างอิงกับทริปหรือเครื่องจักร (ถ้ามี)
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={refType}
-                  onChange={(e) => setRefType(e.target.value)}
-                  disabled={!canCreate}
-                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
-                >
-                  <option value="trip">ทริปขนส่ง (trip)</option>
-                  <option value="machine">เครื่องจักร (machine)</option>
-                </select>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-base font-bold text-slate-400">฿</span>
                 <input
-                  type="text"
-                  value={refId}
-                  onChange={(e) => setRefId(e.target.value)}
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  step="0.01"
+                  value={amountBaht}
+                  onChange={(e) => setAmountBaht(e.target.value)}
                   disabled={!canCreate}
-                  placeholder="รหัส ID ทริป เช่น 1"
-                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                  className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 text-xl font-bold font-mono text-slate-900"
+                  required
                 />
               </div>
             </div>
 
+            <CollapsibleSection
+              title="ข้อมูลเพิ่มเติม (ผูกเที่ยววิ่ง / หมายเหตุ)"
+              badge={refId ? `${refType}: #${refId}` : undefined}
+              defaultOpen={Boolean(refId || description)}
+            >
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    คำอธิบายรายการ
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={!canCreate}
+                    placeholder="เช่น เติมน้ำมันเพิ่ม / ค่าปะยางระหว่างทริป"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                  <div className="mb-1.5 text-xs font-semibold text-slate-700">
+                    ผูกอ้างอิงกับทริปหรือเครื่องจักร (ถ้ามี)
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={refType}
+                      onChange={(e) => setRefType(e.target.value)}
+                      disabled={!canCreate}
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                    >
+                      <option value="trip">ทริปขนส่ง (trip)</option>
+                      <option value="machine">เครื่องจักร (machine)</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={refId}
+                      onChange={(e) => setRefId(e.target.value)}
+                      disabled={!canCreate}
+                      placeholder="รหัส ID เช่น 1"
+                      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CollapsibleSection>
+
             {canCreate && (
-              <button
-                type="submit"
-                disabled={createExpenseMutation.isPending}
-                className="w-full rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
-              >
-                {createExpenseMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรายจ่าย'}
-              </button>
+              <div className="sticky bottom-0 pt-2 bg-white/95 backdrop-blur-xs">
+                <button
+                  type="submit"
+                  disabled={createExpenseMutation.isPending}
+                  className="w-full min-h-[44px] rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {createExpenseMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรายจ่าย'}
+                </button>
+              </div>
             )}
           </form>
         </div>
       </div>
+      <Toast message={toast?.message ?? null} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   );
 }

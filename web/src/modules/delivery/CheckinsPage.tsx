@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { findModule } from '../../lib/modules';
 import { bahtToSatang, formatBaht, satangToBaht } from '../../lib/money';
+import { getTodayDateString } from '../../lib/date';
+import { useModalEsc } from '../../lib/useModalEsc';
 import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 import type { CustomerSku } from '../crm/CustomersPage';
 import type { OrderRecord } from '../orders/OrdersPage';
 
@@ -98,15 +101,11 @@ interface CreateCheckinResponse {
   };
 }
 
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export default function CheckinsPage() {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
-  const [deliveryDateFilter, setDeliveryDateFilter] = useState<string>(todayIsoDate());
+  const [deliveryDateFilter, setDeliveryDateFilter] = useState<string>(getTodayDateString());
   const [zoneFilter, setZoneFilter] = useState<string>('');
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
@@ -127,10 +126,11 @@ export default function CheckinsPage() {
   const [lastSuccess, setLastSuccess] = useState<CreateCheckinResponse | null>(null);
 
   // History filters
-  const [historyDateFrom, setHistoryDateFrom] = useState<string>(todayIsoDate());
-  const [historyDateTo, setHistoryDateTo] = useState<string>(todayIsoDate());
+  const [historyDateFrom, setHistoryDateFrom] = useState<string>(getTodayDateString());
+  const [historyDateTo, setHistoryDateTo] = useState<string>(getTodayDateString());
   const [historyPaymentMode, setHistoryPaymentMode] = useState<string>('');
   const [activeSlipId, setActiveSlipId] = useState<number | null>(null);
+  useModalEsc(Boolean(activeSlipId), () => setActiveSlipId(null));
 
   // โหลดรายการออเดอร์ที่รอส่ง
   const ordersQuery = useQuery({
@@ -736,9 +736,20 @@ export default function CheckinsPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      จำนวนเงินที่รับจริง (บาท)
-                    </label>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        จำนวนเงินที่รับจริง (บาท)
+                      </label>
+                      {paymentMode === 'cash' && (
+                        <button
+                          type="button"
+                          onClick={() => setMoneyReceivedBaht(String(satangToBaht(calculatedTotalSat)))}
+                          className="rounded-lg bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+                        >
+                          เต็มยอด ({formatBaht(calculatedTotalSat)})
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="number"
                       min="0"
@@ -746,26 +757,28 @@ export default function CheckinsPage() {
                       inputMode="decimal"
                       value={moneyReceivedBaht}
                       onChange={(e) => setMoneyReceivedBaht(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-base font-bold text-slate-900 focus:border-sky-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 font-mono text-xl font-bold text-slate-900 focus:border-sky-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                      หมายเหตุการส่งน้ำ (ถ้ามี)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="เช่น ฝากถังไว้หน้าร้าน / โอนเข้าบัญชี..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                    />
+                    <CollapsibleSection title="ข้อมูลเพิ่มเติม (หมายเหตุการส่งน้ำ)">
+                      <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                        หมายเหตุการส่งน้ำ
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="เช่น ฝากถังไว้หน้าร้าน / โอนเข้าบัญชี..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                      />
+                    </CollapsibleSection>
                   </div>
                 </div>
 
-                {/* สรุปยอดเงินก่อนกดยืนยัน */}
-                <div className="flex flex-col gap-3 rounded-xl bg-slate-900 p-4 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950 dark:border dark:border-slate-800">
+                {/* สรุปยอดเงินก่อนกดยืนยัน (Sticky ล่าง) */}
+                <div className="sticky bottom-0 -mx-4 -mb-5 flex flex-col gap-3 rounded-b-xl border-t border-slate-700 bg-slate-900/95 p-4 text-white shadow-xl backdrop-blur sm:static sm:mx-0 sm:mb-0 sm:flex-row sm:items-center sm:justify-between sm:rounded-xl dark:border-slate-800 dark:bg-slate-950">
                   <div className="space-y-0.5">
                     <p className="text-xs text-slate-300">
                       ยอดรวมตามของส่งจริง:{' '}
@@ -788,7 +801,7 @@ export default function CheckinsPage() {
                   <button
                     type="submit"
                     disabled={checkinMutation.isPending}
-                    className="rounded-xl bg-sky-500 px-6 py-3 text-base font-bold text-white shadow hover:bg-sky-400 disabled:opacity-50"
+                    className="min-h-[44px] rounded-xl bg-sky-500 px-6 py-3 text-base font-bold text-white shadow hover:bg-sky-400 disabled:opacity-50"
                   >
                     {checkinMutation.isPending
                       ? 'กำลังบันทึกเช็คอิน...'

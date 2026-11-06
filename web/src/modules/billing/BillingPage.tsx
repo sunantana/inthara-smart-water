@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { findModule } from '../../lib/modules';
 import { bahtToSatang, formatBaht, satangToBaht } from '../../lib/money';
+import { useModalEsc } from '../../lib/useModalEsc';
+import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 
 const moduleMeta = findModule('FIN');
 
@@ -214,8 +217,12 @@ export default function BillingPage() {
   const [settleError, setSettleError] = useState<string>('');
   const [lastSettleResult, setLastSettleResult] = useState<SettleResponse | null>(null);
 
+  // Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Deposit modal state
   const [depositModalOpen, setDepositModalOpen] = useState<boolean>(false);
+  useModalEsc(depositModalOpen, () => setDepositModalOpen(false));
   const [depositType, setDepositType] = useState<'in' | 'use' | 'refund'>('in');
   const [depositAmountBaht, setDepositAmountBaht] = useState<string>('0');
   const [depositNote, setDepositNote] = useState<string>('');
@@ -223,9 +230,11 @@ export default function BillingPage() {
 
   // Print slip modals
   const [activeReceiptSlipId, setActiveReceiptSlipId] = useState<number | null>(null);
+  useModalEsc(Boolean(activeReceiptSlipId), () => setActiveReceiptSlipId(null));
   const [activeHistorySlipCustomerId, setActiveHistorySlipCustomerId] = useState<
     number | null
   >(null);
+  useModalEsc(Boolean(activeHistorySlipCustomerId), () => setActiveHistorySlipCustomerId(null));
 
   const unpaidQuery = useQuery({
     queryKey: ['billing-unpaid', zoneFilter, agingFilter, searchFilter],
@@ -359,6 +368,7 @@ export default function BillingPage() {
       setLastSettleResult(res);
       setSettleNote('');
       setSettleError('');
+      setToastMessage(`ปิดยอดสำเร็จ! ออกใบเสร็จ ${res.receipt.code} (ตัดชำระ ${res.settledOrders.length} ออเดอร์)`);
       queryClient.invalidateQueries({ queryKey: ['billing-unpaid'] });
       queryClient.invalidateQueries({ queryKey: ['billing-customer-unpaid'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -388,6 +398,7 @@ export default function BillingPage() {
       setDepositAmountBaht('0');
       setDepositNote('');
       setDepositError('');
+      setToastMessage('บันทึกรายการเงินมัดจำเรียบร้อยแล้ว');
       queryClient.invalidateQueries({ queryKey: ['billing-unpaid'] });
       queryClient.invalidateQueries({ queryKey: ['billing-customer-unpaid'] });
     },
@@ -445,6 +456,8 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
+      <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div>
@@ -883,44 +896,59 @@ export default function BillingPage() {
                 {/* ช่องกรอกจำนวนเงินชำระ + ใช้ deposit */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">
-                      จำนวนเงินที่รับชำระครั้งนี้ (บาท)
-                    </label>
+                    <div className="mb-1 flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        จำนวนเงินที่รับชำระครั้งนี้ (บาท)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const remainingDebtSat = Math.max(0, selectedCustomerInfo.balanceSat - (parsedUseDepositSat || 0));
+                          setAmountBahtInput(String(satangToBaht(remainingDebtSat)));
+                        }}
+                        className="rounded-lg bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-800 hover:bg-sky-200 dark:bg-sky-950/60 dark:text-sky-300"
+                        title="เติมยอดตามหนี้คงค้างทั้งหมด"
+                      >
+                        จ่ายทั้งหนี้ ({formatBaht(selectedCustomerInfo.balanceSat)} ฿)
+                      </button>
+                    </div>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
+                      inputMode="decimal"
                       value={amountBahtInput}
                       onChange={(e) => setAmountBahtInput(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-base font-bold text-slate-900 focus:border-sky-500 focus:outline-none"
+                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 font-mono text-base font-bold text-slate-900 focus:border-sky-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                       ใช้เงินมัดจำมาช่วยตัดหนี้ (บาท)
                     </label>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
+                      inputMode="decimal"
                       value={useDepositBahtInput}
                       onChange={(e) => setUseDepositBahtInput(e.target.value)}
-                      className={`h-10 w-full rounded-lg border px-3 text-base font-bold focus:outline-none ${
+                      className={`h-11 w-full rounded-lg border px-3 font-mono text-base font-bold focus:outline-none ${
                         dryRunPlan.isDepositExceeded
-                          ? 'border-rose-500 bg-rose-50 text-rose-900'
-                          : 'border-slate-300 text-emerald-900 focus:border-sky-500'
+                          ? 'border-rose-500 bg-rose-50 text-rose-900 dark:bg-rose-950/50 dark:text-rose-200'
+                          : 'border-slate-300 bg-white text-emerald-900 focus:border-sky-500 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-300'
                       }`}
                     />
                     {dryRunPlan.isDepositExceeded && (
-                      <p className="mt-1 text-xs font-semibold text-rose-600">
+                      <p className="mt-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
                         เกินยอดมัดจำคงเหลือ ({formatBaht(availableDepositSat)} ฿)
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                       ช่องทางการชำระเงิน
                     </label>
                     <select
@@ -928,7 +956,7 @@ export default function BillingPage() {
                       onChange={(e) =>
                         setPaymentMethod(e.target.value as 'cash' | 'transfer' | 'other')
                       }
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-800"
+                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                     >
                       <option value="cash">เงินสด (Cash)</option>
                       <option value="transfer">โอนเงิน (Transfer)</option>
@@ -937,8 +965,8 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">
+                <CollapsibleSection title="ข้อมูลเพิ่มเติม (หมายเหตุใบเสร็จ)">
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
                     หมายเหตุใบเสร็จ
                   </label>
                   <input
@@ -946,9 +974,9 @@ export default function BillingPage() {
                     placeholder="เช่น โอนเข้ากสิกร / ปิดบิลประจำเดือน..."
                     value={settleNote}
                     onChange={(e) => setSettleNote(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                   />
-                </div>
+                </CollapsibleSection>
 
                 {/* ตารางจำลองการแจกแจง FIFO (Dry-run Preview) */}
                 <div className="space-y-2">
@@ -1073,85 +1101,99 @@ export default function BillingPage() {
 
       {/* Modal ทำรายการเงินมัดจำ (POST /api/customers/:id/deposit) */}
       {depositModalOpen && selectedCustomerInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 print:hidden">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900">
-              จัดการเงินมัดจำ ({selectedCustomerInfo.code} — {selectedCustomerInfo.name})
-            </h3>
-            <p className="mt-1 text-xs text-slate-600">
-              ยอดเงินมัดจำคงเหลือปัจจุบัน:{' '}
-              <span className="font-bold text-emerald-700">
-                {formatBaht(availableDepositSat)} บาท
-              </span>
-            </p>
-
-            <form onSubmit={handleDepositSubmit} className="mt-4 space-y-4">
-              {depositError && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
-                  {depositError}
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  ประเภทรายการมัดจำ
-                </label>
-                <select
-                  value={depositType}
-                  onChange={(e) => setDepositType(e.target.value as 'in' | 'use' | 'refund')}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
-                >
-                  <option value="in">รับเงินมัดจำเพิ่ม (in)</option>
-                  <option value="use">หักใช้เงินมัดจำ (use)</option>
-                  <option value="refund">คืนเงินมัดจำให้ลูกค้า (refund)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  จำนวนเงิน (บาท)
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  value={depositAmountBaht}
-                  onChange={(e) => setDepositAmountBaht(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  หมายเหตุ
-                </label>
-                <input
-                  type="text"
-                  value={depositNote}
-                  onChange={(e) => setDepositNote(e.target.value)}
-                  placeholder="ระบุเหตุผลการรับ/คืนมัดจำ..."
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm print:hidden">
+          <div className="flex h-full w-full max-w-md flex-col justify-between overflow-y-auto rounded-none bg-white p-4 shadow-xl sm:h-auto sm:rounded-2xl sm:p-6 dark:border dark:border-slate-800 dark:bg-slate-900">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  จัดการเงินมัดจำ ({selectedCustomerInfo.code} — {selectedCustomerInfo.name})
+                </h3>
                 <button
                   type="button"
                   onClick={() => setDepositModalOpen(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                  aria-label="ปิดหน้าต่าง"
                 >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={depositMutation.isPending}
-                  className="rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-700 disabled:opacity-50"
-                >
-                  {depositMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรายการ'}
+                  ✕
                 </button>
               </div>
-            </form>
+              <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+                ยอดเงินมัดจำคงเหลือปัจจุบัน:{' '}
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                  {formatBaht(availableDepositSat)} บาท
+                </span>
+              </p>
+
+              <form onSubmit={handleDepositSubmit} className="mt-4 space-y-4">
+                {depositError && (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                    {depositError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    ประเภทรายการมัดจำ
+                  </label>
+                  <select
+                    value={depositType}
+                    onChange={(e) => setDepositType(e.target.value as 'in' | 'use' | 'refund')}
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    <option value="in">รับเงินมัดจำเพิ่ม (in)</option>
+                    <option value="use">หักใช้เงินมัดจำ (use)</option>
+                    <option value="refund">คืนเงินมัดจำให้ลูกค้า (refund)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    จำนวนเงิน (บาท)
+                  </label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
+                    required
+                    autoFocus
+                    value={depositAmountBaht}
+                    onChange={(e) => setDepositAmountBaht(e.target.value)}
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-base font-bold dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  />
+                </div>
+
+                <CollapsibleSection title="ข้อมูลเพิ่มเติม (หมายเหตุรายการมัดจำ)">
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                    หมายเหตุ
+                  </label>
+                  <input
+                    type="text"
+                    value={depositNote}
+                    onChange={(e) => setDepositNote(e.target.value)}
+                    placeholder="ระบุเหตุผลการรับ/คืนมัดจำ..."
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  />
+                </CollapsibleSection>
+
+                <div className="flex justify-end gap-2 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setDepositModalOpen(false)}
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={depositMutation.isPending}
+                    className="min-h-[44px] rounded-lg bg-sky-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-sky-500 disabled:opacity-50"
+                  >
+                    {depositMutation.isPending ? 'กำลังบันทึก…' : 'ยืนยันทำรายการ'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

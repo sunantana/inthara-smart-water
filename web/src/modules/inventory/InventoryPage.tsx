@@ -4,6 +4,10 @@ import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
 import { bahtToSatang, formatBaht, satangToBaht } from '../../lib/money';
+import { getTodayDateString } from '../../lib/date';
+import { useModalEsc } from '../../lib/useModalEsc';
+import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 
 const moduleMeta = findModule('INV');
 
@@ -89,14 +93,16 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [lowStockOnly, setLowStockOnly] = useState<boolean>(false);
 
+  // Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Packaging filters & modal
   const [pkgSkuFilter, setPkgSkuFilter] = useState<string>('');
   const [pkgStatusFilter, setPkgStatusFilter] = useState<string>('');
   const [showNewPkgModal, setShowNewPkgModal] = useState<boolean>(false);
+  useModalEsc(showNewPkgModal, () => setShowNewPkgModal(false));
   const [pkgLotNo, setPkgLotNo] = useState<string>('');
-  const [pkgPurchaseDate, setPkgPurchaseDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [pkgPurchaseDate, setPkgPurchaseDate] = useState<string>(getTodayDateString);
   const [pkgSku, setPkgSku] = useState<string>('PKG-BOTTLE-189L');
   const [pkgQuantity, setPkgQuantity] = useState<string>('100');
   const [pkgUnitCostBaht, setPkgUnitCostBaht] = useState<string>('120');
@@ -111,12 +117,14 @@ export default function InventoryPage() {
 
   // Adjust Modal
   const [adjustingItem, setAdjustingItem] = useState<InventoryItemRecord | null>(null);
+  useModalEsc(Boolean(adjustingItem), () => setAdjustingItem(null));
   const [newStockInput, setNewStockInput] = useState<string>('0');
   const [adjustReasonInput, setAdjustReasonInput] = useState<string>('ตรวจนับสต็อกจริงประจำวัน');
   const [adjustError, setAdjustError] = useState<string>('');
 
   // Edit Item Modal (min_stock / cost / price)
   const [editingItem, setEditingItem] = useState<InventoryItemRecord | null>(null);
+  useModalEsc(Boolean(editingItem), () => setEditingItem(null));
   const [editMinStock, setEditMinStock] = useState<string>('0');
   const [editCostBaht, setEditCostBaht] = useState<string>('0');
   const [editPriceBaht, setEditPriceBaht] = useState<string>('0');
@@ -189,6 +197,7 @@ export default function InventoryPage() {
     },
     onSuccess: () => {
       setShowNewPkgModal(false);
+      setToastMessage(`รับเข้าล็อตบรรจุภัณฑ์ ${pkgLotNo} สำเร็จ`);
       setPkgLotNo('');
       setPkgError('');
       queryClient.invalidateQueries({ queryKey: ['packaging-lots'] });
@@ -218,6 +227,9 @@ export default function InventoryPage() {
       });
     },
     onSuccess: () => {
+      if (adjustingItem) {
+        setToastMessage(`ปรับปรุงสต็อก ${adjustingItem.name} สำเร็จ`);
+      }
       setAdjustingItem(null);
       setAdjustError('');
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
@@ -245,6 +257,9 @@ export default function InventoryPage() {
       });
     },
     onSuccess: () => {
+      if (editingItem) {
+        setToastMessage(`บันทึกการตั้งค่า ${editingItem.name} สำเร็จ`);
+      }
       setEditingItem(null);
       setEditError('');
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
@@ -298,6 +313,8 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
+      <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+
       {/* Header */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -549,7 +566,8 @@ export default function InventoryPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setPkgLotNo(`PKL-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`);
+                  setPkgLotNo(`PKG-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`);
+                  setPkgPurchaseDate(getTodayDateString());
                   setPkgError('');
                   setShowNewPkgModal(true);
                 }}
@@ -767,120 +785,135 @@ export default function InventoryPage() {
 
       {/* Modal รับเข้าล็อตบรรจุภัณฑ์ใหม่ */}
       {showNewPkgModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-slate-900">
-              รับเข้าล็อตบรรจุภัณฑ์ใหม่ (FIFO)
-            </h3>
-
-            <form onSubmit={handleCreatePkgSubmit} className="mt-4 space-y-4">
-              {pkgError && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
-                  {pkgError}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    เลขที่ล็อต (Lot No)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={pkgLotNo}
-                    onChange={(e) => setPkgLotNo(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    วันที่ซื้อ (Purchase Date)
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={pkgPurchaseDate}
-                    onChange={(e) => setPkgPurchaseDate(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  รหัสบรรจุภัณฑ์ (SKU)
-                </label>
-                <select
-                  value={pkgSku}
-                  onChange={(e) => setPkgSku(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="PKG-BOTTLE-189L">PKG-BOTTLE-189L — ถังบรรจุน้ำ 18.9 ลิตร</option>
-                  <option value="PKG-CAP">PKG-CAP — ฝาซีลถังและฝาขวดน้ำดื่ม</option>
-                  <option value="PKG-LABEL">PKG-LABEL — ฉลากและฟิล์มหดอินธารา</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    จำนวนรับเข้า
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    required
-                    value={pkgQuantity}
-                    onChange={(e) => setPkgQuantity(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    ต้นทุนต่อหน่วย (บาท)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                    value={pkgUnitCostBaht}
-                    onChange={(e) => setPkgUnitCostBaht(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  ผู้จำหน่าย (Supplier)
-                </label>
-                <input
-                  type="text"
-                  value={pkgSupplier}
-                  onChange={(e) => setPkgSupplier(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm">
+          <div className="flex h-full w-full max-w-md flex-col justify-between overflow-y-auto rounded-none bg-white p-4 shadow-xl sm:h-auto sm:rounded-2xl sm:p-6 dark:border dark:border-slate-800 dark:bg-slate-900">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  รับเข้าล็อตบรรจุภัณฑ์ใหม่ (FIFO)
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowNewPkgModal(false)}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                  aria-label="ปิดหน้าต่าง"
                 >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={createPkgLotMutation.isPending}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {createPkgLotMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกรับเข้าล็อต'}
+                  ✕
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleCreatePkgSubmit} className="mt-4 space-y-4">
+                {pkgError && (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+                    {pkgError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      เลขที่ล็อต (Lot No)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={pkgLotNo}
+                      onChange={(e) => setPkgLotNo(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      วันที่ซื้อ
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={pkgPurchaseDate}
+                      onChange={(e) => setPkgPurchaseDate(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    รหัสบรรจุภัณฑ์ (SKU)
+                  </label>
+                  <select
+                    value={pkgSku}
+                    onChange={(e) => setPkgSku(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    <option value="PKG-BOTTLE-189L">PKG-BOTTLE-189L — ถังบรรจุน้ำ 18.9 ลิตร</option>
+                    <option value="PKG-CAP">PKG-CAP — ฝาซีลถังและฝาขวดน้ำดื่ม</option>
+                    <option value="PKG-LABEL">PKG-LABEL — ฉลากและฟิล์มหดอินธารา</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      จำนวนรับเข้า
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      required
+                      value={pkgQuantity}
+                      onChange={(e) => setPkgQuantity(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm font-bold dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      ต้นทุนต่อหน่วย (บาท)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      required
+                      value={pkgUnitCostBaht}
+                      onChange={(e) => setPkgUnitCostBaht(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <CollapsibleSection title="ข้อมูลเพิ่มเติม (ผู้จำหน่าย)">
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    ผู้จำหน่าย (Supplier)
+                  </label>
+                  <input
+                    type="text"
+                    value={pkgSupplier}
+                    onChange={(e) => setPkgSupplier(e.target.value)}
+                    placeholder="เช่น บจก. ไทยพลาสติก..."
+                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  />
+                </CollapsibleSection>
+
+                <div className="flex justify-end gap-2 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPkgModal(false)}
+                    className="min-h-[44px] rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createPkgLotMutation.isPending}
+                    className="min-h-[44px] rounded-lg bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {createPkgLotMutation.isPending ? 'กำลังบันทึก…' : 'บันทึกรับเข้าล็อต'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

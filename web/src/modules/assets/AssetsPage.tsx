@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../api/client';
 import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
+import { getTodayDateString } from '../../lib/date';
+import Toast from '../../components/ui/Toast';
+import CollapsibleSection from '../../components/ui/CollapsibleSection';
 
 const moduleMeta = findModule('AST');
 
@@ -59,9 +62,12 @@ export default function AssetsPage() {
   const { user } = useAuthSession();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = getTodayDateString();
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [asOfDate, setAsOfDate] = useState<string>(todayIso);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(
+    null,
+  );
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
   );
@@ -95,30 +101,32 @@ export default function AssetsPage() {
   const createAssetMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => api.post<AssetRecord>('/assets', payload),
     onSuccess: (created) => {
-      setFeedback({
-        type: 'success',
-        text: `ขึ้นทะเบียนสินทรัพย์ [${created.code}] ${created.name} สำเร็จ`,
-      });
+      const msg = `ขึ้นทะเบียนสินทรัพย์ [${created.code}] ${created.name} สำเร็จ`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       setName('');
       setSelectedAssetId(created.id);
       void queryClient.invalidateQueries({ queryKey: ['assets-list'] });
     },
     onError: (err) => {
-      setFeedback({
-        type: 'error',
-        text: err instanceof ApiError ? err.message : 'เพิ่มสินทรัพย์ไม่สำเร็จ',
-      });
+      const msg = err instanceof ApiError ? err.message : 'เพิ่มสินทรัพย์ไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
   const retireAssetMutation = useMutation({
     mutationFn: (id: number) => api.delete<AssetRecord>(`/assets/${id}`),
     onSuccess: (retired) => {
-      setFeedback({
-        type: 'success',
-        text: `จำหน่าย/ปลดระวางสินทรัพย์ [${retired.code}] เรียบร้อยแล้ว`,
-      });
+      const msg = `จำหน่าย/ปลดระวางสินทรัพย์ [${retired.code}] เรียบร้อยแล้ว`;
+      setFeedback({ type: 'success', text: msg });
+      setToast({ message: msg, type: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['assets-list'] });
+    },
+    onError: (err) => {
+      const msg = err instanceof ApiError ? err.message : 'ปลดระวางสินทรัพย์ไม่สำเร็จ';
+      setFeedback({ type: 'error', text: msg });
+      setToast({ message: msg, type: 'error' });
     },
   });
 
@@ -137,6 +145,11 @@ export default function AssetsPage() {
   };
 
   const dep = depreciationQuery.data;
+
+  const liveCost = Number(costBaht) || 0;
+  const liveSalvage = Number(salvageBaht) || 0;
+  const liveLife = Math.max(1, Number(usefulLifeYears) || 1);
+  const liveDeprecPerYear = Math.max(0, (liveCost - liveSalvage) / liveLife);
 
   return (
     <div className="space-y-6">
@@ -331,131 +344,162 @@ export default function AssetsPage() {
           <h2 className="mb-3 text-base font-bold text-slate-900">
             ขึ้นทะเบียนสินทรัพย์ใหม่
           </h2>
-          <form onSubmit={handleCreate} className="space-y-3 text-sm">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                ชื่อสินทรัพย์ *
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={!canManage}
-                placeholder="เช่น ปั๊มแรงดันสูงสแตนเลส"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleCreate} className="space-y-4 text-sm">
+            {/* ข้อมูลหลัก */}
+            <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+              <div className="text-xs font-bold text-slate-800">ข้อมูลหลัก</div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  หมวดหมู่
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                >
-                  <option value="production">เครื่องจักรผลิต</option>
-                  <option value="vehicle">ยานพาหนะขนส่ง</option>
-                  <option value="office">อุปกรณ์สำนักงาน</option>
-                  <option value="general">ทั่วไป</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  วันที่ได้มา *
+                  ชื่อสินทรัพย์ *
                 </label>
                 <input
-                  type="date"
-                  value={acquisitionDate}
-                  onChange={(e) => setAcquisitionDate(e.target.value)}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="เช่น ปั๊มแรงดันสูงสแตนเลส"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    หมวดหมู่
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    disabled={!canManage}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="production">เครื่องจักรผลิต</option>
+                    <option value="vehicle">ยานพาหนะขนส่ง</option>
+                    <option value="office">อุปกรณ์สำนักงาน</option>
+                    <option value="general">ทั่วไป</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    สถานที่ตั้ง
+                  </label>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    disabled={!canManage}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
                   ราคาทุน (บาท) *
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   step="0.01"
                   value={costBaht}
                   onChange={(e) => setCostBaht(e.target.value)}
                   disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base font-bold font-mono text-slate-900"
                   required
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  มูลค่าซาก (บาท) *
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={salvageBaht}
-                  onChange={(e) => setSalvageBaht(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  required
-                />
+
+              {/* Live depreciation calculation badge */}
+              <div className="rounded-lg border border-sky-100 bg-sky-50/70 p-3 text-xs">
+                <div className="flex items-center justify-between font-semibold text-slate-700">
+                  <span>ประมาณการค่าเสื่อมราคา:</span>
+                  <span className="text-sm font-bold text-sky-700">
+                    ฿{liveDeprecPerYear.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ปี
+                  </span>
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500">
+                  คำนวณแบบเส้นตรง: (ราคาทุน ฿{liveCost.toLocaleString()} - ซาก ฿{liveSalvage.toLocaleString()}) ÷ {liveLife} ปี
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  อายุการใช้งาน (ปี) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={usefulLifeYears}
-                  onChange={(e) => setUsefulLifeYears(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  required
-                />
+            {/* ข้อมูลเพิ่มเติม (ค่าเสื่อมราคาและวันที่) */}
+            <CollapsibleSection
+              title="ข้อมูลเพิ่มเติม (ค่าเสื่อมราคาและวันที่)"
+              badge={`อายุ ${usefulLifeYears} ปี`}
+              defaultOpen={false}
+            >
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    วันที่ได้มา *
+                  </label>
+                  <input
+                    type="date"
+                    value={acquisitionDate}
+                    onChange={(e) => setAcquisitionDate(e.target.value)}
+                    disabled={!canManage}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      มูลค่าซาก (บาท) *
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      value={salvageBaht}
+                      onChange={(e) => setSalvageBaht(e.target.value)}
+                      disabled={!canManage}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      อายุการใช้งาน (ปี) *
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      max="50"
+                      value={usefulLifeYears}
+                      onChange={(e) => setUsefulLifeYears(e.target.value)}
+                      disabled={!canManage}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  สถานที่ตั้ง
-                </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  disabled={!canManage}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
+            </CollapsibleSection>
 
             {canManage && (
-              <button
-                type="submit"
-                disabled={createAssetMutation.isPending}
-                className="w-full rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
-              >
-                {createAssetMutation.isPending
-                  ? 'กำลังบันทึก...'
-                  : 'บันทึกขึ้นทะเบียนสินทรัพย์'}
-              </button>
+              <div className="sticky bottom-0 pt-2 bg-white/95 backdrop-blur-xs">
+                <button
+                  type="submit"
+                  disabled={createAssetMutation.isPending}
+                  className="w-full min-h-[44px] rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {createAssetMutation.isPending
+                    ? 'กำลังบันทึก...'
+                    : 'บันทึกขึ้นทะเบียนสินทรัพย์'}
+                </button>
+              </div>
             )}
           </form>
         </div>
       </div>
+      <Toast message={toast?.message ?? null} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   );
 }
