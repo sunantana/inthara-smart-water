@@ -24,7 +24,7 @@ export function verifyAccessToken(token) {
     const payload = jwt.verify(token, config.jwt.secret);
     if (!payload || typeof payload !== 'object') throw new Error('invalid payload');
     if (payload.scope === 'portal') {
-      throw new AppError(401, 'UNAUTHORIZED', 'token นี้เป็นของพอร์ทัลลูกค้า ใช้กับ API พนักงานไม่ได้');
+      throw new AppError(403, 'FORBIDDEN', 'token นี้เป็นของพอร์ทัลลูกค้า ใช้กับ API พนักงานไม่ได้');
     }
     return payload;
   } catch (error) {

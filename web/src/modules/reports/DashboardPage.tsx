@@ -1,18 +1,49 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type HealthResponse } from '../../api/client';
+import { useAuthSession } from '../../lib/auth';
 import { findModule } from '../../lib/modules';
+import type { AuditLogItem } from '../auth/UsersPage';
 
 const module = findModule('RPT');
 
+interface AuditLogsResponse {
+  data: AuditLogItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 /**
- * หน้าแรกของ Phase 0 — แสดงสถานะการเชื่อมต่อ API จริง (GET /api/health)
- * ทำให้เห็นทันทีว่า frontend → proxy → backend → SQLite ทำงานครบเส้น
+ * หน้าแดชบอร์ด:
+ * - แสดงสถานะการเชื่อมต่อ API จริง (GET /api/health)
+ * - สำหรับ admin/manager: แสดง Audit Log 25 รายการล่าสุด + กรองตามผู้ใช้/action ตาม SRS AUTH-6
  */
 export default function DashboardPage() {
+  const { user } = useAuthSession();
+  const canViewAudit = user?.role === 'admin' || user?.role === 'manager';
+
+  const [filterUsername, setFilterUsername] = useState('');
+  const [filterAction, setFilterAction] = useState('');
+
   const health = useQuery({
     queryKey: ['health'],
     queryFn: () => api.get<HealthResponse>('/health'),
     refetchInterval: 30_000,
+  });
+
+  const recentAudit = useQuery({
+    queryKey: ['dashboard-audit-logs', filterUsername, filterAction],
+    enabled: canViewAudit,
+    queryFn: () => {
+      const params = new URLSearchParams({ page: '1', limit: '25' });
+      if (filterUsername.trim()) params.set('username', filterUsername.trim());
+      if (filterAction.trim()) params.set('action', filterAction.trim());
+      return api.get<AuditLogsResponse>(`/auth/audit-logs?${params.toString()}`);
+    },
   });
 
   const badge = health.isPending
@@ -64,12 +95,76 @@ export default function DashboardPage() {
             {health.error.message} — ตรวจสอบว่า backend รันอยู่ที่พอร์ต 3001
           </p>
         )}
-
-        <p className="mt-4 text-xs text-slate-500">
-          Phase 0: หน้านี้ยืนยันว่า frontend (5173) → proxy → backend (3001) → SQLite ทำงานครบเส้น
-          รายงานยอดขายจริงจะทำใน Phase ถัดไป
-        </p>
       </div>
+
+      {canViewAudit && (
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-700">
+                บันทึกการใช้งานล่าสุด 25 รายการ (SRS AUTH-6)
+              </h2>
+              <p className="text-xs text-slate-500">
+                ติดตามการเข้าสู่ระบบและการแก้ไขข้อมูลล่าสุดแบบเรียลไทม์
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                value={filterUsername}
+                onChange={(e) => setFilterUsername(e.target.value)}
+                placeholder="กรองตามผู้ใช้…"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs"
+              />
+              <input
+                type="text"
+                value={filterAction}
+                onChange={(e) => setFilterAction(e.target.value)}
+                placeholder="กรองตาม action…"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+              <thead className="bg-slate-50 font-semibold text-slate-600">
+                <tr>
+                  <th className="px-3 py-2">เวลา</th>
+                  <th className="px-3 py-2">ผู้ใช้</th>
+                  <th className="px-3 py-2">Action</th>
+                  <th className="px-3 py-2">สถานะ</th>
+                  <th className="px-3 py-2">รายละเอียด</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(recentAudit.data?.data ?? []).map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50">
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-slate-500">
+                      {item.createdAt}
+                    </td>
+                    <td className="px-3 py-2 font-medium text-slate-800">{item.username}</td>
+                    <td className="px-3 py-2 font-mono text-brand-700">{item.action}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded px-2 py-0.5 font-medium ${
+                          item.status === 'success'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-red-50 text-red-700'
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-slate-600">{item.detail ?? '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

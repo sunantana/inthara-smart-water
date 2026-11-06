@@ -2,10 +2,10 @@ import express from 'express';
 import { logger } from './utils/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import healthRouter from './modules/health/router.js';
+import authRouter from './modules/auth/router.js';
 
 /**
  * สร้าง express app (ไม่ listen) — แยกจาก index.js เพื่อให้ supertest เรียกใช้ได้
- * ไม่มี route ธุรกิจใน Phase 0: มีเฉพาะ /api/health
  * @returns {import('express').Express}
  */
 export function createApp() {
@@ -36,6 +36,7 @@ export function createApp() {
   });
 
   app.use('/api/health', healthRouter);
+  app.use('/api/auth', authRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -1,6 +1,8 @@
+import type { UserRole } from './auth';
+
 /**
- * รายการเมนู 16 โมดูลตาม docs/specs/01_SRS_ความต้องการระบบ.md หัวข้อ 3
- * ใช้ร่วมกันระหว่าง sidebar และหน้า placeholder ของแต่ละโมดูล
+ * รายการเมนู 16 โมดูลตาม docs/specs/01_SRS_ความต้องการระบบ.md หัวข้อ 2 & 3
+ * ใช้ร่วมกันระหว่าง sidebar (กรองตาม role) และหน้า placeholder ของแต่ละโมดูล
  */
 export type ModuleCode =
   | 'AUTH'
@@ -31,6 +33,8 @@ export interface ModuleMeta {
   srsSection: string;
   /** คำอธิบายสั้นว่าหน้านี้จะทำอะไร */
   description: string;
+  /** บทบาทที่ได้รับอนุญาตให้เห็นเมนูนี้ตาม 01_SRS หัวข้อ 2 */
+  roles: UserRole[];
 }
 
 export const MODULES: ModuleMeta[] = [
@@ -40,6 +44,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/dashboard',
     srsSection: '3.15',
     description: 'สรุปยอดขาย/สต็อก/แจ้งเตือนในหน้าเดียว และรายงานยอดขายตามช่วงเวลา',
+    roles: ['admin', 'manager', 'staff'],
   },
   {
     code: 'CRM',
@@ -47,6 +52,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/customers',
     srsSection: '3.2',
     description: 'ข้อมูลลูกค้า ที่อยู่ พิกัด ราคาต่อราย และยอดถังค้าง/มัดจำ',
+    roles: ['admin', 'manager', 'staff'],
   },
   {
     code: 'PRC',
@@ -54,6 +60,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/price-tiers',
     srsSection: '3.3',
     description: 'ชุดราคาตามกลุ่มลูกค้า และราคาเฉพาะรายต่อ SKU',
+    roles: ['admin', 'manager', 'staff'],
   },
   {
     code: 'ORD',
@@ -61,6 +68,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/orders',
     srsSection: '3.4',
     description: 'สร้าง/แก้/ยืนยัน/ยกเลิกออเดอร์ พร้อมใบเส้นทางส่งของรายวัน',
+    roles: ['admin', 'manager', 'staff'],
   },
   {
     code: 'DLV',
@@ -68,6 +76,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/checkins',
     srsSection: '3.5',
     description: 'ปิดงานส่งของหน้างาน: ตัดสต็อก รับถังคืน เก็บเงิน และออกใบเสร็จในครั้งเดียว',
+    roles: ['admin', 'manager', 'driver'],
   },
   {
     code: 'FIN',
@@ -75,6 +84,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/billing',
     srsSection: '3.6',
     description: 'รายการค้างชำระ อายุหนี้ ปิดยอดแบบ FIFO และสลิปเก็บเงิน',
+    roles: ['admin', 'manager', 'staff'],
   },
   {
     code: 'TMS',
@@ -82,6 +92,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/tms',
     srsSection: '3.7',
     description: 'วางแผนเส้นทางบนแผนที่ บันทึกเที่ยว ระยะทาง น้ำมัน และลำดับป้าย',
+    roles: ['admin', 'manager', 'driver'],
   },
   {
     code: 'PRD',
@@ -89,6 +100,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/production',
     srsSection: '3.8',
     description: 'แผนผลิตรายกะ ค่า TDS/pH การตรวจ QA และการรับ FG เข้าสต็อก',
+    roles: ['admin', 'manager'],
   },
   {
     code: 'INV',
@@ -96,6 +108,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/inventory',
     srsSection: '3.9',
     description: 'สต็อกคงเหลือทุก SKU ประวัติ movement และ lot บรรจุภัณฑ์แบบ FIFO',
+    roles: ['admin', 'manager'],
   },
   {
     code: 'MNT',
@@ -103,6 +116,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/maintenance',
     srsSection: '3.10',
     description: 'ทะเบียนเครื่องจักร ประวัติซ่อม/PM และแจ้งเตือนถึงกำหนด PM',
+    roles: ['admin', 'manager'],
   },
   {
     code: 'AST',
@@ -110,6 +124,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/assets',
     srsSection: '3.11',
     description: 'ทะเบียนสินทรัพย์ รถส่งของ และการคำนวณค่าเสื่อมตามวันที่',
+    roles: ['admin', 'manager'],
   },
   {
     code: 'EMP',
@@ -117,6 +132,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/employees',
     srsSection: '3.12',
     description: 'ข้อมูลพนักงาน ค่าจ้าง ใบขับขี่ และการแจ้งเตือนใบขับขี่ใกล้หมดอายุ',
+    roles: ['admin', 'manager'],
   },
   {
     code: 'EXP',
@@ -124,6 +140,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/expenses',
     srsSection: '3.13',
     description: 'บันทึกค่าใช้จ่ายทุกประเภท และต้นทุนต่อเที่ยว/ต่อเครื่อง',
+    roles: ['admin', 'manager'],
   },
   {
     code: 'PORTAL',
@@ -131,6 +148,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/portal-admin',
     srsSection: '3.14',
     description: 'ลงทะเบียน/รีเซ็ต PIN ให้ลูกค้า และตรวจสถานะการเข้าใช้พอร์ทัล',
+    roles: ['admin', 'manager', 'staff'],
   },
   {
     code: 'AUTH',
@@ -138,6 +156,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/users',
     srsSection: '3.1',
     description: 'จัดการผู้ใช้ บทบาท การปลดล็อกบัญชี และดู audit log',
+    roles: ['admin'],
   },
   {
     code: 'BKP',
@@ -145,6 +164,7 @@ export const MODULES: ModuleMeta[] = [
     path: '/backup',
     srsSection: '3.16',
     description: 'สำรอง/กู้คืนฐานข้อมูล และดูประวัติการสำรองล่าสุด',
+    roles: ['admin', 'manager'],
   },
 ];
 
@@ -152,4 +172,14 @@ export function findModule(code: ModuleCode): ModuleMeta {
   const found = MODULES.find((module) => module.code === code);
   if (!found) throw new Error(`ไม่พบโมดูลรหัส ${code}`);
   return found;
+}
+
+export function getModulesForRole(role?: UserRole | null): ModuleMeta[] {
+  if (!role) return [];
+  return MODULES.filter((m) => m.roles.includes(role));
+}
+
+export function getDefaultPathForRole(role?: UserRole | null): string {
+  if (role === 'driver') return '/tms';
+  return '/dashboard';
 }
