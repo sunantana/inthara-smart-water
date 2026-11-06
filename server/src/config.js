@@ -78,6 +78,10 @@ export const config = Object.freeze({
   port: readInt('PORT', 3001),
   /** โฟลเดอร์เก็บ SQLite — ค่าเริ่มต้น server/data */
   dataDir: path.resolve(serverRoot, process.env.DATA_DIR || 'data'),
+  /** โฟลเดอร์สำรองข้อมูลฐานข้อมูล (.db) — ค่าเริ่มต้น backups/ ที่รากโปรเจกต์ */
+  backupsDir: path.resolve(
+    process.env.BACKUPS_DIR || path.join(path.dirname(serverRoot), 'backups'),
+  ),
   logLevel: process.env.LOG_LEVEL || (nodeEnv === 'test' ? 'silent' : 'info'),
   jwt: Object.freeze({
     secret: jwtSecret,

@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { closeDb, dbFile } from './db/connection.js';
 import { runMigrations } from './db/migrate.js';
+import { startBackupCron, stopBackupCron } from './modules/backup/service.js';
 import { logger } from './utils/logger.js';
 
 // 1) ฐานข้อมูล + migration ก่อนรับ request
@@ -20,6 +21,7 @@ try {
 const app = createApp();
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, env: config.nodeEnv }, `API พร้อมใช้งานที่ http://localhost:${config.port}/api/health`);
+  startBackupCron();
 });
 
 // 3) ปิดอย่างสุภาพ: หยุดรับ request ใหม่ → ปิด DB → ออก
@@ -36,6 +38,7 @@ function shutdown(signal) {
   forceExit.unref();
 
   server.close(() => {
+    stopBackupCron();
     closeDb();
     logger.info('ปิดเซิร์ฟเวอร์เรียบร้อย');
     process.exit(0);

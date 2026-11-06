@@ -17,6 +17,9 @@ import { machinesRouter, maintenanceRouter } from './modules/cmms/router.js';
 import assetsRouter from './modules/assets/router.js';
 import employeesRouter from './modules/employees/router.js';
 import expensesRouter from './modules/expenses/router.js';
+import portalRouter from './modules/portal/router.js';
+import reportsRouter from './modules/reports/router.js';
+import backupRouter from './modules/backup/router.js';
 import { listVehicles } from './modules/tms/service.js';
 
 /**
@@ -65,6 +68,9 @@ export function createApp() {
   app.use('/api/assets', assetsRouter);
   app.use('/api/employees', employeesRouter);
   app.use('/api/expenses', expensesRouter);
+  app.use('/api/portal', portalRouter);
+  app.use('/api/reports', reportsRouter);
+  app.use('/api/backup', backupRouter);
 
   // Read endpoint for vehicles needed by TMS
   app.get('/api/vehicles', requireAuth, requireRole(...ROLES), (_req, res, next) => {

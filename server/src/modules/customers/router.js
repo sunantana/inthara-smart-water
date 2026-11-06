@@ -14,6 +14,13 @@ import {
 } from './schema.js';
 import { customerDepositSchema } from '../billing/schema.js';
 import { recordCustomerDeposit } from '../billing/service.js';
+import { adminPortalPinBodySchema } from '../portal/schema.js';
+import {
+  getCustomerPortalAccessStatus,
+  registerCustomerPortal,
+  resetCustomerPortalPin,
+  unlockCustomerPortal,
+} from '../portal/service.js';
 import * as service from './service.js';
 
 const router = Router();
@@ -237,6 +244,83 @@ router.delete(
         data: deleted,
         customer: deleted,
       });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+// ============ Customer Portal Admin Management (PORTAL-1, PORTAL-2) ============
+
+router.post(
+  '/:id/portal/register',
+  requireAuth,
+  requireRole('manager', 'admin'),
+  audit('PORTAL_REGISTER', 'customers'),
+  validate({ params: customerIdParamSchema, body: adminPortalPinBodySchema }),
+  (req, res, next) => {
+    try {
+      const result = registerCustomerPortal(req.params.id, req.body.pin);
+      setAuditContext(res, {
+        entityId: req.params.id,
+        detail: `ลงทะเบียน PIN พอร์ทัลให้ลูกค้า ID ${req.params.id}`,
+      });
+      return res.status(201).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.post(
+  '/:id/portal/reset-pin',
+  requireAuth,
+  requireRole('manager', 'admin'),
+  audit('PORTAL_RESET_PIN', 'customers'),
+  validate({ params: customerIdParamSchema, body: adminPortalPinBodySchema }),
+  (req, res, next) => {
+    try {
+      const result = resetCustomerPortalPin(req.params.id, req.body.pin);
+      setAuditContext(res, {
+        entityId: req.params.id,
+        detail: `รีเซ็ต PIN พอร์ทัลให้ลูกค้า ID ${req.params.id}`,
+      });
+      return res.json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.post(
+  '/:id/portal/unlock',
+  requireAuth,
+  requireRole('manager', 'admin'),
+  audit('PORTAL_UNLOCK', 'customers'),
+  validate({ params: customerIdParamSchema }),
+  (req, res, next) => {
+    try {
+      const result = unlockCustomerPortal(req.params.id);
+      setAuditContext(res, {
+        entityId: req.params.id,
+        detail: `ปลดล็อกพอร์ทัลให้ลูกค้า ID ${req.params.id}`,
+      });
+      return res.json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.get(
+  '/:id/portal/access-status',
+  requireAuth,
+  requireRole('manager', 'admin', 'staff'),
+  validate({ params: customerIdParamSchema }),
+  (req, res, next) => {
+    try {
+      const result = getCustomerPortalAccessStatus(req.params.id);
+      return res.json(result);
     } catch (error) {
       return next(error);
     }

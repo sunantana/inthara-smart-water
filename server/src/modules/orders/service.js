@@ -359,7 +359,7 @@ export function createOrder(payload, actorUserId = null) {
       paidSat: 0,
       paymentMode: payload.paymentMode ?? null,
       notes: payload.notes?.trim() || null,
-      source: 'staff',
+      source: payload.source || 'staff',
       createdBy: actorUserId,
     });
 
