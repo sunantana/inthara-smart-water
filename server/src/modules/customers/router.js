@@ -12,6 +12,8 @@ import {
   updateCustomerPricesSchema,
   updateCustomerSchema,
 } from './schema.js';
+import { customerDepositSchema } from '../billing/schema.js';
+import { recordCustomerDeposit } from '../billing/service.js';
 import * as service from './service.js';
 
 const router = Router();
@@ -113,6 +115,30 @@ router.get(
     try {
       const result = service.listCustomerLedger(req.params.id, req.query);
       return res.json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.post(
+  '/:id/deposit',
+  requireAuth,
+  requireRole('admin', 'manager', 'staff'),
+  audit('CUSTOMER_DEPOSIT', 'customer_ledger'),
+  validate({ params: customerIdParamSchema, body: customerDepositSchema }),
+  (req, res, next) => {
+    try {
+      const actorId = req.user?.id ?? req.user?.sub ?? null;
+      const result = recordCustomerDeposit(req.params.id, req.body, actorId);
+      setAuditContext(res, {
+        entityId: String(req.params.id),
+        detail: `รายการเงินมัดจำลูกค้า #${req.params.id} (${req.body.type}: ${result.ledgerEntry.amountSat} สต. -> คงเหลือ ${result.balanceSat} สต.)`,
+      });
+      return res.json({
+        ...result,
+        data: result,
+      });
     } catch (error) {
       return next(error);
     }

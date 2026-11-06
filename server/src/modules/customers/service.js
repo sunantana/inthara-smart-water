@@ -450,11 +450,50 @@ export function listCustomerLedger(id, query = {}) {
   const page = Number(query.page ?? 1);
   const limit = Number(query.limit ?? 50);
   const offset = (page - 1) * limit;
-  const { rows, total } = repo.listCustomerLedgerPaginated(customerId, { offset, limit });
+  const from = String(query.from ?? '').trim();
+  const to = String(query.to ?? '').trim();
+  const { rows, total } = repo.listCustomerLedgerPaginated(customerId, {
+    offset,
+    limit,
+    from,
+    to,
+  });
 
+  const formatted = rows.map((row) => {
+    const amountSat = Number(row.amount_sat ?? 0);
+    const isOutflow =
+      row.entry_type === 'deposit_use' || row.entry_type === 'deposit_refund';
+    return {
+      id: row.id,
+      customerId: row.customer_id,
+      customer_id: row.customer_id,
+      entryType: row.entry_type,
+      entry_type: row.entry_type,
+      amountSat,
+      amount_sat: amountSat,
+      amountBaht: satangToBaht(amountSat),
+      signedAmountSat: isOutflow ? -Math.abs(amountSat) : amountSat,
+      refType: row.ref_type ?? null,
+      ref_type: row.ref_type ?? null,
+      refId: row.ref_id ?? null,
+      ref_id: row.ref_id ?? null,
+      note: row.note ?? '',
+      createdBy: row.created_by ?? null,
+      created_by: row.created_by ?? null,
+      createdByName: row.created_by_name ?? row.created_by_username ?? null,
+      createdAt: row.created_at,
+      created_at: row.created_at,
+    };
+  });
+
+  const pagination = computePaginationMeta(page, limit, total);
   return {
-    data: rows,
-    pagination: computePaginationMeta(page, limit, total),
+    data: formatted,
+    items: formatted,
+    ledger: formatted,
+    balanceSat: Math.max(0, Number(existing.balance_sat ?? 0)),
+    pagination,
+    meta: pagination,
   };
 }
 

@@ -221,6 +221,58 @@ export default function CustomersPage() {
     queryFn: () => api.get<CustomerDetailResponse>(`/customers/${routeCustomerId}`),
   });
 
+  const ledgerQuery = useQuery({
+    queryKey: ['customer-ledger', routeCustomerId],
+    enabled: Boolean(routeCustomerId),
+    queryFn: () =>
+      api.get<{
+        items: Array<{
+          id: number;
+          entryType: string;
+          amountSat: number;
+          signedAmountSat: number;
+          refType: string | null;
+          refId: string | null;
+          note: string;
+          createdByName: string | null;
+          createdAt: string;
+        }>;
+      }>(`/customers/${routeCustomerId}/ledger?limit=50`),
+  });
+
+  const [depType, setDepType] = useState<'in' | 'use' | 'refund'>('in');
+  const [depAmountBaht, setDepAmountBaht] = useState<string>('');
+  const [depNote, setDepNote] = useState<string>('');
+  const [depError, setDepError] = useState<string>('');
+
+  const depositMutation = useMutation({
+    mutationFn: async () => {
+      if (!routeCustomerId) throw new Error('ไม่พบรหัสลูกค้า');
+      const amountSat = bahtToSatang(depAmountBaht || '0');
+      if (amountSat <= 0) throw new Error('จำนวนเงินมัดจำต้องมากกว่า 0 บาท');
+      return api.post(`/customers/${routeCustomerId}/deposit`, {
+        type: depType,
+        amountSat,
+        note: depNote.trim(),
+      });
+    },
+    onSuccess: () => {
+      setDepAmountBaht('');
+      setDepNote('');
+      setDepError('');
+      queryClient.invalidateQueries({ queryKey: ['customer-detail', routeCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ['customer-ledger', routeCustomerId] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (err) => {
+      setDepError(
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : 'ไม่สามารถบันทึกรายการมัดจำได้',
+      );
+    },
+  });
+
   const tiersQuery = useQuery({
     queryKey: ['price-tiers'],
     queryFn: () => api.get<{ data: PriceTierItem[] }>('/price-tiers?active=1'),
@@ -601,6 +653,129 @@ export default function CustomersPage() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* สมุดบัญชีลูกค้า (Customer Ledger) & จัดการเงินมัดจำ (SRS FIN-1) */}
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-800">
+                    สมุดบัญชีลูกค้า (Customer Ledger) & เงินมัดจำ (SRS FIN-1)
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    ประวัติความเคลื่อนไหวทางการเงินทั้งหมดของลูกค้า (ตั้งหนี้, รับชำระ, รับ/ใช้/คืนเงินมัดจำ)
+                  </p>
+                </div>
+                <span className="rounded-lg bg-emerald-50 px-3 py-1.5 font-mono text-xs font-bold text-emerald-800">
+                  มัดจำคงเหลือ: {formatBaht(detail.balanceSat, true)}
+                </span>
+              </div>
+
+              {/* ฟอร์มทำรายการมัดจำด่วน */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setDepError('');
+                  depositMutation.mutate();
+                }}
+                className="mt-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs"
+              >
+                <div>
+                  <label className="mb-1 block font-semibold text-slate-700">ประเภทรายการมัดจำ</label>
+                  <select
+                    value={depType}
+                    onChange={(e) => setDepType(e.target.value as 'in' | 'use' | 'refund')}
+                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                  >
+                    <option value="in">รับเงินมัดจำเพิ่ม (in)</option>
+                    <option value="use">หักใช้เงินมัดจำ (use)</option>
+                    <option value="refund">คืนเงินมัดจำ (refund)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-semibold text-slate-700">จำนวนเงิน (บาท)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={depAmountBaht}
+                    onChange={(e) => setDepAmountBaht(e.target.value)}
+                    placeholder="0.00"
+                    className="w-32 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-mono"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="mb-1 block font-semibold text-slate-700">หมายเหตุ</label>
+                  <input
+                    type="text"
+                    value={depNote}
+                    onChange={(e) => setDepNote(e.target.value)}
+                    placeholder="ระบุรายละเอียด..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={depositMutation.isPending}
+                  className="rounded-lg bg-sky-600 px-4 py-1.5 font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {depositMutation.isPending ? 'กำลังบันทึก...' : 'บันทึกมัดจำ'}
+                </button>
+              </form>
+
+              {depError && (
+                <p className="mt-2 text-xs font-semibold text-rose-600">{depError}</p>
+              )}
+
+              <div className="mt-3 overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                  <thead className="bg-slate-50 font-semibold text-slate-600">
+                    <tr>
+                      <th className="px-3 py-2">วันที่-เวลา</th>
+                      <th className="px-3 py-2">ประเภท (entry_type)</th>
+                      <th className="px-3 py-2 text-right">จำนวนเงิน (บาท)</th>
+                      <th className="px-3 py-2">เอกสารอ้างอิง</th>
+                      <th className="px-3 py-2">หมายเหตุ</th>
+                      <th className="px-3 py-2">ผู้บันทึก</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(ledgerQuery.data?.items ?? []).length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                          ยังไม่มีรายการเคลื่อนไหวในสมุดบัญชีลูกค้า
+                        </td>
+                      </tr>
+                    ) : (
+                      (ledgerQuery.data?.items ?? []).map((l) => (
+                        <tr key={l.id}>
+                          <td className="px-3 py-2 font-mono text-slate-500">{l.createdAt}</td>
+                          <td className="px-3 py-2 font-mono font-semibold text-slate-800">
+                            {l.entryType}
+                          </td>
+                          <td
+                            className={`px-3 py-2 text-right font-mono font-bold ${
+                              l.entryType === 'order_debt'
+                                ? 'text-rose-700'
+                                : l.entryType === 'deposit_use' || l.entryType === 'deposit_refund'
+                                  ? 'text-amber-700'
+                                  : 'text-emerald-700'
+                            }`}
+                          >
+                            {formatBaht(l.amountSat, true)}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-slate-600">
+                            {l.refType && l.refId ? `${l.refType}: ${l.refId}` : '-'}
+                          </td>
+                          <td className="px-3 py-2 text-slate-600">{l.note || '-'}</td>
+                          <td className="px-3 py-2 text-slate-600">{l.createdByName || '-'}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
