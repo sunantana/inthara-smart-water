@@ -10,7 +10,7 @@ export function getTodayAndMonthSales(todayStr) {
          COALESCE(SUM(CASE WHEN strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', ?) THEN o.total_sat ELSE 0 END), 0) AS month_sales_sat,
          COUNT(DISTINCT CASE WHEN strftime('%Y-%m', o.delivery_date) = strftime('%Y-%m', ?) THEN o.id ELSE NULL END) AS month_orders_count
        FROM orders o
-       WHERE o.status != 'cancelled'`,
+       WHERE o.status = 'delivered'`,
     )
     .get(todayStr, todayStr, todayStr, todayStr);
 
@@ -64,7 +64,7 @@ export function get12MonthsSalesTrend(todayStr) {
          COALESCE(SUM(CASE WHEN oi.sku != 'FG-189L' THEN oi.qty ELSE 0 END), 0) AS total_packs
        FROM orders o
        LEFT JOIN order_items oi ON oi.order_id = o.id
-       WHERE o.status != 'cancelled'
+       WHERE o.status = 'delivered'
          AND o.delivery_date >= date(?, '-12 months', 'start of month')
          AND o.delivery_date <= date(?, 'start of month', '+1 month', '-1 day')
        GROUP BY strftime('%Y-%m', o.delivery_date)
@@ -80,7 +80,7 @@ export function getSalesAggregates({ dateFrom, dateTo, zone, groupBy = 'day' } =
       ? "strftime('%Y-%m', o.delivery_date)"
       : "strftime('%Y-%m-%d', o.delivery_date)";
 
-  const where = ["o.status != 'cancelled'"];
+  const where = ["o.status = 'delivered'"];
   const params = [];
 
   if (dateFrom) {

@@ -1,4 +1,9 @@
 import express from 'express';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import compression from 'compression';
+import { config } from './config.js';
 import { logger } from './utils/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { requireAuth } from './middleware/auth.js';
@@ -31,6 +36,9 @@ export function createApp() {
 
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
+
+  // gzip compression สำหรับทุก response ที่ client รองรับ
+  app.use(compression({ threshold: 0 }));
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -80,6 +88,27 @@ export function createApp() {
       return next(error);
     }
   });
+
+  // Production Web Static Serving & SPA Fallback
+  const webDistDir = path.resolve(
+    process.env.WEB_DIST_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), '../../web/dist'),
+  );
+  const indexHtmlPath = path.join(webDistDir, 'index.html');
+
+  if (config.nodeEnv === 'production' || process.env.NODE_ENV === 'production') {
+    app.use(express.static(webDistDir));
+
+    // SPA fallback: ทุก GET request ที่ไม่ใช่ /api/* ตอบ index.html
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      if (fs.existsSync(indexHtmlPath)) {
+        return res.sendFile(indexHtmlPath);
+      }
+      return next();
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);
