@@ -5,9 +5,11 @@ import { ROLES, requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import {
   adjustInventorySchema,
+  createPackagingLotSchema,
   inventoryItemsQuerySchema,
   inventoryMovementsQuerySchema,
   inventorySkuParamSchema,
+  packagingLotsQuerySchema,
   updateInventoryItemSchema,
 } from './schema.js';
 import * as service from './service.js';
@@ -86,6 +88,42 @@ router.post(
         ...result,
         data: result,
       });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.get(
+  '/packaging-lots',
+  requireAuth,
+  requireRole(...ROLES),
+  validate({ query: packagingLotsQuerySchema }),
+  (req, res, next) => {
+    try {
+      const result = service.listPackagingLots(req.query);
+      return res.json(result);
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.post(
+  '/packaging-lots',
+  requireAuth,
+  requireRole('manager', 'admin', 'staff'),
+  audit('PACKAGING_LOT_CREATE', 'packaging_lots'),
+  validate({ body: createPackagingLotSchema }),
+  (req, res, next) => {
+    try {
+      const actorId = req.user?.id ?? req.user?.sub ?? null;
+      const result = service.createPackagingLot(req.body, actorId);
+      setAuditContext(res, {
+        entityId: String(result.id),
+        detail: `รับเข้าล็อตบรรจุภัณฑ์ ${result.lotNo} (${result.sku} x${result.quantity}, ต้นทุน=${result.unitCostSat} สต./หน่วย)`,
+      });
+      return res.status(201).json(result);
     } catch (error) {
       return next(error);
     }
