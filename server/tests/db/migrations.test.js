@@ -62,14 +62,19 @@ beforeAll(() => {
 });
 
 describe('ระบบ migration', () => {
-  it('มีไฟล์ migration 001_init.sql และ 002_price_history.sql เรียงตามลำดับ', () => {
-    expect(listMigrations()).toEqual(['001_init.sql', '002_price_history.sql']);
+  it('มีไฟล์ migration 001_init.sql, 002_price_history.sql และ 003_packaging_consume_reason.sql เรียงตามลำดับ', () => {
+    expect(listMigrations()).toEqual([
+      '001_init.sql',
+      '002_price_history.sql',
+      '003_packaging_consume_reason.sql',
+    ]);
   });
 
   it('รันครั้งแรกแล้วบันทึก schema_version', () => {
     const versions = db.prepare('SELECT version FROM schema_version ORDER BY version').all();
     expect(versions.map((row) => row.version)).toContain('001_init.sql');
     expect(versions.map((row) => row.version)).toContain('002_price_history.sql');
+    expect(versions.map((row) => row.version)).toContain('003_packaging_consume_reason.sql');
   });
 
   it('รันซ้ำแล้วไม่ทำอะไรอีก (idempotent)', () => {

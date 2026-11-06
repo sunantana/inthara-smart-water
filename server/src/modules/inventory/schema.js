@@ -13,10 +13,13 @@ export const MOVEMENT_REASONS = /** @type {const} */ ([
   'order_out',
   'checkin_return',
   'packaging_in',
+  'packaging_consume',
   'maintenance_use',
   'adjustment',
   'backup_restore',
 ]);
+
+export const PACKAGING_LOT_STATUSES = /** @type {const} */ (['active', 'depleted', 'void']);
 
 export const inventorySkuParamSchema = z.object({
   sku: z.string().trim().min(1, 'กรุณาระบุรหัส SKU').max(64),
@@ -34,6 +37,12 @@ const nonNegativeInt = z.coerce
   .number()
   .int('ต้องเป็นจำนวนเต็ม')
   .min(0, 'ต้องไม่ติดลบ')
+  .max(1_000_000_000, 'ค่าสูงเกินกำหนด');
+
+const positiveInt = z.coerce
+  .number()
+  .int('ต้องเป็นจำนวนเต็ม')
+  .min(1, 'จำนวนต้องมากกว่า 0')
   .max(1_000_000_000, 'ค่าสูงเกินกำหนด');
 
 export const updateInventoryItemSchema = z
@@ -84,4 +93,22 @@ export const inventoryMovementsQuerySchema = z.object({
     .or(z.literal('')),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+});
+
+export const createPackagingLotSchema = z.object({
+  lotNo: z.string().trim().min(1, 'กรุณาระบุเลขที่ล็อตบรรจุภัณฑ์ (lotNo)').max(100),
+  purchaseDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'รูปแบบวันที่ซื้อ (purchaseDate) ต้องเป็น YYYY-MM-DD'),
+  sku: z.string().trim().min(1, 'กรุณาระบุรหัส SKU บรรจุภัณฑ์').max(64),
+  quantity: positiveInt,
+  unitCostSat: nonNegativeInt.default(0),
+  supplier: z.string().trim().max(200).nullable().optional(),
+  linkedAssetId: z.coerce.number().int().positive().nullable().optional(),
+});
+
+export const packagingLotsQuerySchema = z.object({
+  sku: z.string().trim().max(64).optional().default(''),
+  status: z.enum(PACKAGING_LOT_STATUSES).optional().or(z.literal('')),
 });

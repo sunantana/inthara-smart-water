@@ -12,6 +12,7 @@ import checkinsRouter from './modules/delivery/router.js';
 import inventoryRouter from './modules/inventory/router.js';
 import billingRouter from './modules/billing/router.js';
 import tmsRouter from './modules/tms/router.js';
+import productionRouter from './modules/production/router.js';
 import { listDrivers, listVehicles } from './modules/tms/service.js';
 
 /**
@@ -54,6 +55,7 @@ export function createApp() {
   app.use('/api/inventory', inventoryRouter);
   app.use('/api/billing', billingRouter);
   app.use('/api/tms', tmsRouter);
+  app.use('/api/production', productionRouter);
 
   // Minimal read endpoints for vehicles and driver employees needed by TMS (full CRUD in Phase 8)
   app.get('/api/vehicles', requireAuth, requireRole(...ROLES), (_req, res, next) => {
