@@ -72,6 +72,7 @@ export const createOrderSchema = z
       .min(1, 'ต้องมีรายการสินค้าอย่างน้อย 1 รายการ'),
     paymentMode: z.enum(['cash', 'credit']).nullable().optional(),
     notes: z.string().trim().max(500).nullable().optional(),
+    source: z.enum(['staff', 'portal']).optional(),
   })
   .refine(
     (val) => val.items.reduce((sum, item) => sum + Number(item.qty || 0), 0) > 0,
@@ -92,6 +93,7 @@ export const updateOrderSchema = z
     status: z.enum(['draft', 'confirmed']).optional(),
     paymentMode: z.enum(['cash', 'credit']).nullable().optional(),
     notes: z.string().trim().max(500).nullable().optional(),
+    source: z.enum(['staff', 'portal']).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'ต้องระบุข้อมูลที่ต้องการแก้ไขอย่างน้อย 1 รายการ',

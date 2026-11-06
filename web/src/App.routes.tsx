@@ -6,6 +6,7 @@ import { getDefaultPathForRole } from './lib/modules';
 
 // lazy ต่อโมดูล → Vite แยก chunk ตาม route (code-split) ตาม 02 §2
 const LoginPage = lazy(() => import('./modules/auth/LoginPage'));
+const CustomerPortalPage = lazy(() => import('./modules/portal/CustomerPortalPage'));
 const DashboardPage = lazy(() => import('./modules/reports/DashboardPage'));
 const CustomersPage = lazy(() => import('./modules/crm/CustomersPage'));
 const PriceTiersPage = lazy(() => import('./modules/pricing/PriceTiersPage'));
@@ -54,6 +55,7 @@ export default function AppRoutes() {
     <Suspense fallback={<RouteLoading />}>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="portal" element={<CustomerPortalPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route index element={<DefaultRedirect />} />
