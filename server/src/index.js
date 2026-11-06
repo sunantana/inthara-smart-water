@@ -19,7 +19,19 @@ try {
   const userCount = db.prepare('SELECT COUNT(*) AS cnt FROM users').get().cnt;
   if (userCount === 0) {
     logger.info('ฐานข้อมูลยังไม่มีผู้ใช้ — กำลังรัน seed production อัตโนมัติ...');
-    seedProduction({ adminPassword: process.env.ADMIN_INITIAL_PASSWORD });
+    const accounts = seedProduction({ adminPassword: process.env.ADMIN_INITIAL_PASSWORD });
+    // จำเป็นสำหรับแผน Render ที่ไม่มี shell: พิมพ์รหัสผ่านที่สุ่มลง log ครั้งเดียว
+    // (เจ้าของดึงได้จาก Render Dashboard → Logs ของ deploy นั้น)
+    logger.warn(
+      { event: 'BOOTSTRAP_SEED', accounts: accounts.length },
+      'สร้างบัญชีเริ่มต้น 5 บัญชี — รหัสผ่านแสดงครั้งเดียวเฉพาะใน log นี้ โปรดจดบันทึกทันที',
+    );
+    for (const acc of accounts) {
+      logger.warn(
+        { event: 'BOOTSTRAP_ACCOUNT', username: acc.username, role: acc.role, password: acc.password, pin: acc.pin },
+        `บัญชีเริ่มต้น: ${acc.username} (${acc.role}) — รหัสผ่าน: ${acc.password} | PIN: ${acc.pin}`,
+      );
+    }
   }
 } catch (error) {
   logger.error({ err: error }, '[FATAL] เตรียมฐานข้อมูลไม่สำเร็จ');
