@@ -86,6 +86,49 @@ export const DEFAULT_PACKAGING_ITEMS = [
   },
 ];
 
+export const DEFAULT_SPARE_PART_ITEMS = [
+  {
+    sku: 'SP-FILTER-5U',
+    name: 'ไส้กรองดักตะกอน PP 5 ไมครอน (20 นิ้ว)',
+    category: 'spare_part',
+    unit: 'แท่ง',
+    stock: 24,
+    min_stock: 10,
+    unit_cost_sat: 17000,
+    unit_price_sat: null,
+  },
+  {
+    sku: 'SP-RO-MEMBRANE',
+    name: 'เมมเบรน RO 4040 (0.0001 ไมครอน)',
+    category: 'spare_part',
+    unit: 'หลอด',
+    stock: 4,
+    min_stock: 2,
+    unit_cost_sat: 650000,
+    unit_price_sat: null,
+  },
+  {
+    sku: 'SP-UV-LAMP',
+    name: 'หลอดไฟฆ่าเชื้อ UV 40W พร้อมซองควอตซ์',
+    category: 'spare_part',
+    unit: 'ชุด',
+    stock: 6,
+    min_stock: 2,
+    unit_cost_sat: 95000,
+    unit_price_sat: null,
+  },
+  {
+    sku: 'SP-SEAL-PUMP',
+    name: 'ชุดแมคคานิคอลซีลปั๊มน้ำแรงดันสูง',
+    category: 'spare_part',
+    unit: 'ชุด',
+    stock: 8,
+    min_stock: 3,
+    unit_cost_sat: 45000,
+    unit_price_sat: null,
+  },
+];
+
 export const DEFAULT_SEED_PACKAGING_LOTS = [
   {
     lotNo: 'PKL-261001-B189',

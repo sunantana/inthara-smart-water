@@ -130,6 +130,25 @@ export function seedDefaultInventoryItems(stockOverrides = {}, { overwrite = fal
       });
     }
 
+    // Seed SKU อะไหล่ซ่อมบำรุงตั้งต้น (SP-*)
+    for (const spDef of repo.DEFAULT_SPARE_PART_ITEMS) {
+      const overrideStock =
+        stockOverrides && Object.prototype.hasOwnProperty.call(stockOverrides, spDef.sku)
+          ? Number(stockOverrides[spDef.sku])
+          : spDef.stock;
+      const spToSeed = { ...spDef, stock: overrideStock };
+      if (overwrite) {
+        const res = repo.upsertInventoryItem(spToSeed);
+        results.push({ ...spToSeed, status: res.action });
+      } else {
+        const inserted = repo.insertDefaultInventoryIfMissing(spToSeed);
+        results.push({
+          ...spToSeed,
+          status: inserted ? 'created' : 'kept',
+        });
+      }
+    }
+
     for (const lotDef of repo.DEFAULT_SEED_PACKAGING_LOTS) {
       const existingLot = repo.findPackagingLotByLotNo(lotDef.lotNo);
       if (!existingLot) {
@@ -225,6 +244,7 @@ export function adjustInventoryStock(payload, actorId = null) {
       const defaultDef = [
         ...repo.DEFAULT_INVENTORY_ITEMS,
         ...repo.DEFAULT_PACKAGING_ITEMS,
+        ...repo.DEFAULT_SPARE_PART_ITEMS,
       ].find((d) => d.sku === cleanSku);
       if (defaultDef) {
         repo.insertDefaultInventoryIfMissing({ ...defaultDef, stock: 0 });

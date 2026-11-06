@@ -5,6 +5,7 @@ import { runMigrations } from '../src/db/migrate.js';
 import { hashSecret } from '../src/modules/auth/service.js';
 import { seedDefaultInventoryItems } from '../src/modules/inventory/service.js';
 import { seedDefaultTmsResources } from '../src/modules/tms/service.js';
+import { seedDefaultCmmsResources } from '../src/modules/cmms/service.js';
 
 const WORDS = [
   'Aqua',
@@ -152,10 +153,11 @@ export function seedInitialUsers({ adminPassword, adminPin } = {}) {
   runInTx();
   seedDefaultInventoryItems();
   seedDefaultTmsResources();
+  seedDefaultCmmsResources();
   return seeded;
 }
 
-export { seedDefaultInventoryItems, seedDefaultTmsResources };
+export { seedDefaultInventoryItems, seedDefaultTmsResources, seedDefaultCmmsResources };
 
 const isMain =
   process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.argv[1].toLowerCase();
